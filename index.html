@@ -1,0 +1,1366 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Monkeytype - Squad Leaderboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        :root {
+            --bg-color: #181818;
+            --main-color: #13C9C9;
+            --caret-color: #13C9C9;
+            --sub-color: #5E6266;
+            --sub-alt-color: #242526;
+            --text-color: #D1D2C7;
+            --error-color: #ca4754;
+            --error-extra-color: #7e2a33;
+            --font-family: 'Roboto Mono', monospace;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: var(--font-family);
+            margin: 0;
+            padding: 0;
+            overflow-x: hidden;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+
+        .streak-counter {
+            color: var(--sub-color);
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: all 0.3s ease;
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.5rem;
+            background-color: transparent;
+        }
+        .streak-active {
+            color: var(--main-color);
+            text-shadow: 0 0 10px rgba(19, 201, 201, 0.5);
+        }
+        .streak-broken {
+            animation: shakeRed 0.5s ease-in-out;
+            color: var(--error-color) !important;
+        }
+
+        @keyframes shakeRed {
+            0%, 100% { transform: translateX(0); }
+            20%, 60% { transform: translateX(-5px); color: var(--error-color); }
+            40%, 80% { transform: translateX(5px); color: var(--error-color); }
+        }
+        
+        @keyframes flashGreen {
+            0% { transform: scale(1); color: #4ade80; text-shadow: 0 0 20px #4ade80; }
+            50% { transform: scale(1.1); color: #4ade80; text-shadow: 0 0 30px #4ade80; }
+            100% { transform: scale(1); color: var(--main-color); }
+        }
+        .streak-success {
+            animation: flashGreen 1s ease-out;
+        }
+
+        .config-bar-container {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            margin-bottom: 2rem;
+            transition: opacity 0.3s;
+            flex-wrap: wrap;
+        }
+        .config-group {
+            background-color: var(--sub-alt-color);
+            color: var(--sub-color);
+            border-radius: 0.5rem;
+            font-size: 0.8rem;
+            display: flex;
+            padding: 0.35rem 1rem;
+            gap: 1rem;
+            align-items: center;
+        }
+        .config-item {
+            cursor: pointer;
+            transition: color 0.2s;
+            display: flex;
+            align-items: center;
+        }
+        .config-item:hover, .config-item.active {
+            color: var(--main-color);
+        }
+
+        #typing-test {
+            position: relative;
+            font-size: 1.75rem;
+            line-height: 48px;
+            height: 144px;
+            overflow: hidden;
+            width: 100%;
+        }
+
+        #words-container {
+            display: flex;
+            flex-wrap: wrap;
+            align-content: flex-start;
+            user-select: none;
+            position: relative;
+            top: 0;
+            transition: top 0.2s ease;
+        }
+
+        .word {
+            margin: 0 0.5em 0 0;
+            display: inline-flex;
+            color: var(--sub-color);
+            border-bottom: 2px solid transparent;
+            height: 48px;
+            align-items: center;
+        }
+        
+        .word.error-underline {
+            border-bottom: 2px solid var(--error-color);
+        }
+
+        .letter { position: relative; }
+        .letter.correct { color: var(--text-color); }
+        .letter.incorrect { color: var(--error-color); }
+        .letter.incorrect.extra { color: var(--error-extra-color); }
+
+        #caret {
+            position: absolute;
+            width: 3px;
+            height: 2rem;
+            background-color: var(--caret-color);
+            border-radius: 2px;
+            transition: left 0.1s ease, top 0.1s ease;
+            animation: blink 1s infinite;
+            z-index: 10;
+        }
+        
+        #caret.typing {
+            animation: none;
+            opacity: 1;
+        }
+
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0; }
+        }
+
+        #focus-overlay {
+            position: absolute;
+            inset: 0;
+            background: rgba(15, 15, 15, 0.8);
+            backdrop-filter: blur(4px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 50;
+            cursor: pointer;
+            transition: opacity 0.2s ease;
+            border-radius: 0.75rem;
+        }
+        #focus-overlay.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .hide { display: none !important; }
+        .invisible { visibility: hidden; opacity: 0; }
+        
+        .stat-group { display: flex; flex-direction: column; }
+        .stat-title { color: var(--sub-color); font-size: 1rem; margin-bottom: -0.25rem; }
+        .stat-val { color: var(--main-color); font-size: 3rem; font-weight: 500; line-height: 1.1; }
+        
+        .nav-button {
+            color: var(--sub-color);
+            transition: color 0.2s ease, background-color 0.2s ease;
+            cursor: pointer;
+        }
+        .nav-button:hover {
+            color: var(--text-color);
+        }
+
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: var(--bg-color); }
+        ::-webkit-scrollbar-thumb { background: var(--sub-alt-color); border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--sub-color); }
+    </style>
+</head>
+<body class="antialiased selection:bg-cyan-600/30">
+
+    <div class="max-w-[1000px] mx-auto w-full px-6 py-6 flex flex-col min-h-screen">
+        
+        <header class="flex justify-between items-center mb-8 w-full">
+            <div class="flex items-center gap-6">
+                <div id="logo-btn" class="flex items-center gap-2 group cursor-pointer">
+                    <div class="relative flex items-center justify-center w-9 h-9 rounded-lg bg-[var(--sub-alt-color)] text-[var(--main-color)] transition-transform group-hover:scale-105">
+                        <i class="fa-solid fa-keyboard text-lg"></i>
+                    </div>
+                    <div class="text-2xl font-bold tracking-tighter text-[var(--text-color)] flex items-baseline">
+                        mt<span class="text-[var(--main-color)]">.</span>
+                    </div>
+                </div>
+
+                <!-- Navigation Tabs -->
+                <nav class="flex items-center gap-2 bg-[var(--sub-alt-color)] p-1 rounded-lg">
+                    <button id="nav-test-btn" class="px-3 py-1.5 rounded-md text-xs font-semibold text-[var(--main-color)] bg-[var(--bg-color)] transition-all flex items-center gap-1.5">
+                        <i class="fa-solid fa-keyboard"></i> Test
+                    </button>
+                    <button id="nav-leaderboard-btn" class="px-3 py-1.5 rounded-md text-xs font-semibold text-[var(--sub-color)] hover:text-[var(--text-color)] transition-all flex items-center gap-1.5">
+                        <i class="fa-solid fa-trophy"></i> Leaderboard
+                    </button>
+                </nav>
+            </div>
+
+            <!-- Header Controls & Account -->
+            <div class="flex items-center gap-4 text-sm text-[var(--sub-color)]">
+                <div id="streak-display" class="streak-counter group relative cursor-help">
+                    <i class="fa-solid fa-fire text-lg"></i>
+                    <span class="tracking-wider text-xs uppercase hidden sm:inline">Streak:</span>
+                    <span id="streak-value" class="text-lg font-bold">0</span>
+                    
+                    <div class="border-l border-[var(--sub-color)] pl-2 flex items-baseline">
+                        <span class="tracking-wider text-[10px] uppercase text-[var(--sub-color)] hidden sm:inline">Best:</span>
+                        <span id="best-streak-value" class="text-xs font-bold text-[var(--text-color)]">0</span>
+                    </div>
+
+                    <div class="absolute top-10 right-0 w-max bg-[var(--sub-alt-color)] text-[var(--text-color)] text-xs py-1 px-3 rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 shadow-lg">
+                        100% Accuracy Required. Resets on first typo.
+                    </div>
+                </div>
+
+                <!-- Profile / Auth trigger button -->
+                <button id="auth-modal-trigger" class="flex items-center gap-2 bg-[var(--sub-alt-color)] hover:bg-[#323437] text-[var(--text-color)] px-3 py-1.5 rounded-lg text-xs font-semibold transition-all shadow-sm">
+                    <i class="fa-solid fa-user-astronaut text-[var(--main-color)]"></i>
+                    <span id="profile-name-display">Guest</span>
+                </button>
+            </div>
+        </header>
+
+        <div id="config-bar" class="config-bar-container w-full">
+            <div class="config-group">
+                <span class="config-item active" data-mode="time"><i class="fa-solid fa-clock mr-1"></i> time</span>
+                <span class="config-item" data-mode="words"><i class="fa-solid fa-font mr-1"></i> words</span>
+            </div>
+
+            <div class="config-group" id="config-lengths">
+                <span class="config-item" data-val="15">15</span>
+                <span class="config-item active" data-val="30">30</span>
+                <span class="config-item" data-val="60">60</span>
+                <span class="config-item" data-val="120">120</span>
+            </div>
+        </div>
+
+        <main class="flex-grow flex flex-col relative w-full pt-2">
+            
+            <div id="view-test" class="w-full flex flex-col">
+                <div class="flex justify-center text-[var(--sub-color)] mb-4 text-xs transition-opacity duration-300" id="language-indicator">
+                    <span class="cursor-pointer hover:text-[var(--text-color)] transition-colors"><i class="fa-solid fa-globe mr-1.5"></i>english</span>
+                </div>
+
+                <div id="live-stats" class="text-[1.5rem] text-[var(--main-color)] font-medium mb-2 h-8 transition-opacity duration-300 text-center">
+                    30
+                </div>
+
+                <div id="typing-test-container" class="relative w-full">
+                    <div id="focus-overlay" class="hidden">
+                        <div class="text-[var(--text-color)] text-sm md:text-base flex items-center gap-2 bg-[var(--sub-alt-color)] px-6 py-3 rounded-xl shadow-lg border border-neutral-700">
+                            <i class="fa-solid fa-arrow-pointer text-[var(--main-color)]"></i> Click here or press any key to focus
+                        </div>
+                    </div>
+
+                    <div id="typing-test" tabindex="0" class="outline-none">
+                        <div id="caret"></div>
+                        <div id="words-container">
+                            <!-- Words injected dynamically -->
+                        </div>
+                    </div>
+                </div>
+
+                <div id="restart-btn-container" class="mt-8 flex flex-col items-center justify-center w-full transition-opacity duration-300">
+                    <button id="restart-btn" class="text-[var(--sub-color)] hover:text-[var(--text-color)] transition-colors py-3 px-5 rounded-lg outline-none focus:text-[var(--text-color)]">
+                        <i class="fa-solid fa-rotate-right text-xl"></i>
+                    </button>
+                    <span class="text-xs text-[var(--sub-color)] mt-1 font-mono">Press Tab to quick restart</span>
+                </div>
+
+                <div id="results-screen" class="hide w-full flex flex-col pt-2">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8 bg-[var(--sub-alt-color)] p-6 rounded-2xl border border-neutral-800 shadow-lg">
+                        <div class="flex flex-col gap-6 justify-center">
+                            <div class="stat-group">
+                                <span class="stat-title">wpm</span>
+                                <span class="stat-val" id="result-wpm">00</span>
+                            </div>
+                            <div class="stat-group">
+                                <span class="stat-title">acc</span>
+                                <span class="stat-val" id="result-acc">100%</span>
+                            </div>
+                        </div>
+
+                        <div class="flex flex-col gap-3 justify-center text-[var(--text-color)] text-sm">
+                            <div class="flex justify-between w-full border-b border-neutral-800 pb-2">
+                                <span class="text-[var(--sub-color)]">test type</span>
+                                <span id="result-type" class="font-semibold">time 30</span>
+                            </div>
+                            <div class="flex justify-between w-full border-b border-neutral-800 pb-2">
+                                <span class="text-[var(--sub-color)]">characters</span>
+                                <span id="result-chars" class="font-mono">0/0/0/0</span>
+                            </div>
+                            <div class="flex justify-between w-full border-b border-neutral-800 pb-2">
+                                <span class="text-[var(--sub-color)]">time</span>
+                                <span id="result-time" class="font-semibold">30s</span>
+                            </div>
+                            <div class="flex justify-between w-full pt-1">
+                                <span class="text-[var(--main-color)] font-bold"><i class="fa-solid fa-fire mr-1"></i> streak</span>
+                                <span id="result-streak" class="text-[var(--main-color)] font-bold">0</span>
+                            </div>
+                            <div class="flex justify-between w-full">
+                                <span class="text-[var(--sub-color)] text-xs"><i class="fa-solid fa-trophy mr-1"></i> best streak</span>
+                                <span id="result-best-streak" class="text-[var(--text-color)] text-xs font-bold">0</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="flex justify-center">
+                        <button id="next-test-btn" class="nav-button bg-[var(--sub-alt-color)] hover:bg-[var(--main-color)] hover:text-black font-bold text-lg px-8 py-3 rounded-xl transition-all flex items-center gap-2">
+                            <span>Next Test</span> <i class="fa-solid fa-arrow-right text-sm"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div id="view-leaderboard" class="hide w-full flex flex-col">
+                <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
+                    <div>
+                        <h2 class="text-2xl font-bold text-[var(--text-color)] flex items-center gap-2">
+                            <i class="fa-solid fa-trophy text-[var(--main-color)]"></i> Squad Leaderboard
+                        </h2>
+                        <p class="text-[var(--sub-color)] text-xs mt-1" id="lb-category-title">Top 100% Streaks for Time 30</p>
+                    </div>
+                    
+                    <div id="lb-status" class="text-xs text-[var(--sub-color)] font-mono bg-[var(--sub-alt-color)] px-3 py-1.5 rounded-lg border border-neutral-800">
+                        Live Sync
+                    </div>
+                </div>
+
+                <div class="bg-[var(--sub-alt-color)] rounded-2xl border border-neutral-800 overflow-hidden shadow-xl">
+                    <div class="grid grid-cols-12 gap-2 px-6 py-3 bg-neutral-900/50 text-[var(--sub-color)] text-xs font-bold uppercase tracking-wider border-b border-neutral-800">
+                        <div class="col-span-1 text-center">#</div>
+                        <div class="col-span-5 md:col-span-6">User</div>
+                        <div class="col-span-3 md:col-span-3 text-right">Best Streak</div>
+                        <div class="col-span-3 md:col-span-2 text-right">WPM</div>
+                    </div>
+
+                    <div id="leaderboard-list" class="divide-y divide-neutral-800 max-h-[450px] overflow-y-auto">
+                        <!-- Leaderboard items rendered dynamically -->
+                        <div class="p-8 text-center text-[var(--sub-color)] text-sm">
+                            <i class="fa-solid fa-circle-notch fa-spin mr-2"></i> Loading scores...
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <div id="auth-modal" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4 opacity-0 pointer-events-none transition-opacity duration-300">
+        <div class="bg-[var(--bg-color)] border border-neutral-800 w-full max-w-md rounded-2xl p-6 shadow-2xl relative transform scale-95 transition-transform duration-300" id="auth-modal-card">
+            <button id="close-auth-modal" class="absolute top-4 right-4 text-[var(--sub-color)] hover:text-[var(--text-color)] text-lg w-8 h-8 rounded-lg flex items-center justify-center transition-colors">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+
+            <div class="text-center mb-6">
+                <div class="w-14 h-14 rounded-full bg-[var(--sub-alt-color)] text-[var(--main-color)] mx-auto flex items-center justify-center text-2xl mb-3 border border-neutral-800">
+                    <i class="fa-solid fa-user-ninja"></i>
+                </div>
+                <h2 class="text-xl font-bold text-[var(--text-color)]">Squad Login</h2>
+                <p class="text-[var(--sub-color)] text-xs mt-1">Sign in to compete on the leaderboard</p>
+            </div>
+            
+            <div class="flex flex-col gap-4">
+                <div class="flex flex-col gap-3" id="auth-forms-container">
+                    
+                    <div id="auth-inputs-section" class="flex flex-col gap-3">
+                        <div>
+                            <label class="block text-[var(--sub-color)] text-[10px] uppercase font-bold tracking-wider mb-1.5">Username</label>
+                            <input type="text" id="username-input" class="w-full bg-[var(--sub-alt-color)] text-[var(--text-color)] px-4 py-2.5 rounded-lg outline-none focus:ring-2 focus:ring-[var(--main-color)] font-mono text-sm transition-all border border-neutral-800 placeholder:text-[var(--sub-color)]" placeholder="e.g. TypeMaster99" maxlength="15" autocomplete="off">
+                        </div>
+                        
+                        <div>
+                            <label class="block text-[var(--sub-color)] text-[10px] uppercase font-bold tracking-wider mb-1.5">Password</label>
+                            <input type="password" id="password-input" class="w-full bg-[var(--sub-alt-color)] text-[var(--text-color)] px-4 py-2.5 rounded-lg outline-none focus:ring-2 focus:ring-[var(--main-color)] text-sm transition-all border border-neutral-800 placeholder:text-[var(--sub-color)]" placeholder="••••••••">
+                        </div>
+
+                        <div class="flex gap-2 mt-2">
+                            <button id="login-btn" class="w-1/2 bg-[var(--sub-alt-color)] hover:bg-[#323437] text-[var(--text-color)] font-bold py-2.5 rounded-lg transition-all text-sm border border-neutral-700 flex justify-center items-center shadow-sm">
+                                Login
+                            </button>
+                            <button id="signup-btn" class="w-1/2 bg-[var(--main-color)] text-black font-bold py-2.5 rounded-lg hover:brightness-110 transition-all text-sm shadow-md flex justify-center items-center shadow-cyan-950/30">
+                                Create Account
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Only shown when logged in -->
+                    <button id="logout-btn" class="w-full bg-red-950/50 hover:bg-red-900/60 text-red-200 border border-red-800/50 font-bold py-2.5 rounded-lg transition-all text-sm justify-center items-center gap-2 hidden">
+                        <i class="fa-solid fa-right-from-bracket"></i> Sign Out
+                    </button>
+                    
+                    <div class="relative flex py-2 items-center" id="guest-divider">
+                        <div class="flex-grow border-t border-neutral-800"></div>
+                        <span class="flex-shrink-0 mx-3 text-[var(--sub-color)] text-[10px] uppercase font-bold tracking-wider">OR</span>
+                        <div class="flex-grow border-t border-neutral-800"></div>
+                    </div>
+
+                    <button id="guest-btn" class="w-full bg-transparent text-[var(--sub-color)] hover:text-[var(--text-color)] font-medium py-2 rounded-lg transition-all text-xs flex justify-center items-center gap-2">
+                        Continue as Guest (No Leaderboard)
+                    </button>
+                </div>
+
+                <div id="auth-error" class="text-[var(--error-color)] text-xs text-center hide font-medium mt-1 bg-red-950/30 py-2 rounded-lg border border-red-900/50"></div>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        /* Import Firebase modules safely */
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged, signOut, createUserWithEmailAndPassword, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, getDoc, setDoc, collection, query, orderBy, limit, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        const appId = 'monkeytype-squad-streak';
+        
+        /* 
+           ========================================================================
+           TO SHARE LEADERBOARDS WITH FRIENDS:
+           1. Create a free project at console.firebase.google.com
+           2. Enable 'Authentication' (Email/Password provider)
+           3. Enable 'Firestore Database' (Start in test mode or allow read/write)
+           4. Go to Project Settings, add a Web App, and paste the config below:
+           ========================================================================
+        */
+        const myFirebaseConfig = {
+            // apiKey: "YOUR_API_KEY",
+            // authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+            // projectId: "YOUR_PROJECT_ID",
+            // storageBucket: "YOUR_PROJECT_ID.appspot.com",
+            // messagingSenderId: "YOUR_SENDER_ID",
+            // appId: "YOUR_APP_ID"
+        };
+
+        // Fallback for environment injected config (if used in specific platforms)
+        let firebaseConfig = Object.keys(myFirebaseConfig).length > 0 ? myFirebaseConfig : {};
+        if (typeof __firebase_config !== 'undefined' && Object.keys(firebaseConfig).length === 0) {
+            try { firebaseConfig = JSON.parse(__firebase_config); } catch(e) {}
+        }
+
+        let app, db, auth;
+        let currentUser = null;
+        // By default, attempt to pull a local username, otherwise "Guest"
+        let userProfileData = { username: localStorage.getItem('monkeytype_local_user') || "Guest" };
+        let currentView = 'test';
+        let isOffline = false;
+
+        try {
+            if (!firebaseConfig.apiKey) throw new Error("No Firebase Config supplied");
+            app = initializeApp(firebaseConfig);
+            db = getFirestore(app);
+            auth = getAuth(app);
+        } catch(e) {
+            console.log("Running in offline/local mode. Setup Firebase to share leaderboards.");
+            isOffline = true;
+        }
+
+        /* Dictionary */
+        const wordList = [
+            "the","be","of","and","a","to","in","he","have","it","that","for","they","I","with","as","not","on","she","at","by","this","we","you","do","but","from","or","which","one","would","all","will","there","say","who","make","when","can","more","if","no","man","out","other","so","what","time","up","go","about","than","into","could","state","only","new","year","some","take","come","these","know","see","use","get","like","then","first","any","work","now","may","such","give","over","think","most","even","find","day","also","after","way","many","must","look","before","great","back","through","long","where","much","should","well","people","down","own","just","because","good","each","those","feel","seem","how","high","too","place","little","world","very","still","nation","hand","old","life","tell","write","become","here","show","house","both","between","need","mean","call","develop","under","last","right","move","thing","general","school","never","same","another","begin","while","number","part","turn","real","leave","might","want","point","form","off","child","few","small","since","against","ask","late","home","interest","large","person","end","open","public","follow","during","present","without","again","hold","govern","around","possible","head","consider","word","program","problem","however","lead","system","set","order","eye","plan","run","keep","face","fact","group","play","stand","increase","early","course","change","help","line"
+        ];
+
+        let mode = 'time'; 
+        let length = 30; 
+        
+        let words = [];
+        let currentWordIndex = 0;
+        let activeWordElement = null;
+        
+        let hasStarted = false;
+        let timer = null;
+        let timeRemaining = 0;
+        let timeElapsed = 0;
+        
+        let correctChars = 0;
+        let incorrectChars = 0;
+        let extraChars = 0;
+        let missedChars = 0;
+        
+        let currentStreak = 0;
+        let bestStreak = 0;
+        let isPerfectTest = true;
+
+        /* DOM Elements */
+        const typingTestDiv = document.getElementById('typing-test');
+        const wordsContainer = document.getElementById('words-container');
+        const caret = document.getElementById('caret');
+        const liveStats = document.getElementById('live-stats');
+        const focusOverlay = document.getElementById('focus-overlay');
+        const restartBtn = document.getElementById('restart-btn');
+        
+        const streakValue = document.getElementById('streak-value');
+        const bestStreakValue = document.getElementById('best-streak-value');
+        const streakDisplay = document.getElementById('streak-display');
+        
+        const configBar = document.getElementById('config-bar');
+        const languageIndicator = document.getElementById('language-indicator');
+        const restartBtnContainer = document.getElementById('restart-btn-container');
+        const testContainer = document.getElementById('typing-test-container');
+        const resultsScreen = document.getElementById('results-screen');
+
+        const navTestBtn = document.getElementById('nav-test-btn');
+        const navLeaderboardBtn = document.getElementById('nav-leaderboard-btn');
+        const viewTest = document.getElementById('view-test');
+        const viewLeaderboard = document.getElementById('view-leaderboard');
+        const logoBtn = document.getElementById('logo-btn');
+
+        /* Auth Elements */
+        const authModal = document.getElementById('auth-modal');
+        const authModalCard = document.getElementById('auth-modal-card');
+        const authModalTrigger = document.getElementById('auth-modal-trigger');
+        const closeAuthBtn = document.getElementById('close-auth-modal');
+        
+        const authInputsSection = document.getElementById('auth-inputs-section');
+        const usernameInput = document.getElementById('username-input');
+        const passwordInput = document.getElementById('password-input');
+        const loginBtn = document.getElementById('login-btn');
+        const signupBtn = document.getElementById('signup-btn');
+        const logoutBtn = document.getElementById('logout-btn');
+        const guestBtn = document.getElementById('guest-btn');
+        const guestDivider = document.getElementById('guest-divider');
+
+        const profileNameDisplay = document.getElementById('profile-name-display');
+        const authError = document.getElementById('auth-error');
+        
+        const lbStatus = document.getElementById('lb-status');
+        const lbCategoryTitle = document.getElementById('lb-category-title');
+        const leaderboardList = document.getElementById('leaderboard-list');
+
+        // Utility to generate a hidden dummy email from the username
+        const getDummyEmail = (username) => {
+            const cleanName = username.toLowerCase().replace(/[^a-z0-9]/g, '');
+            return `${cleanName}@squad-local.app`;
+        };
+
+        if (auth) {
+            onAuthStateChanged(auth, async (user) => {
+                if (user) {
+                    currentUser = user;
+                    await loadUserProfile();
+                    
+                    if (!user.isAnonymous) {
+                        // User is logged in
+                        authInputsSection.classList.add('hidden');
+                        guestDivider.classList.add('hidden');
+                        guestBtn.classList.add('hidden');
+                        
+                        logoutBtn.classList.remove('hidden');
+                        logoutBtn.classList.add('flex');
+                    } else {
+                        // User is anonymous (Guest)
+                        authInputsSection.classList.remove('hidden');
+                        guestDivider.classList.remove('hidden');
+                        guestBtn.classList.remove('hidden');
+                        
+                        logoutBtn.classList.add('hidden');
+                        logoutBtn.classList.remove('flex');
+                    }
+
+                    if (currentView === 'leaderboard') fetchLeaderboard();
+                } else {
+                    currentUser = null;
+                    // Reset to guest
+                    userProfileData = { username: localStorage.getItem('monkeytype_local_user') || "Guest" };
+                    profileNameDisplay.innerText = userProfileData.username;
+                    
+                    authInputsSection.classList.remove('hidden');
+                    guestDivider.classList.remove('hidden');
+                    guestBtn.classList.remove('hidden');
+                    
+                    logoutBtn.classList.add('hidden');
+                    logoutBtn.classList.remove('flex');
+                }
+            });
+        }
+
+        async function initAuth() {
+            if (isOffline || !auth) {
+                profileNameDisplay.innerText = userProfileData.username;
+                return;
+            }
+            try {
+                if (!auth.currentUser) {
+                    await signInAnonymously(auth);
+                }
+            } catch(e) {
+                isOffline = true;
+            }
+        }
+
+        async function loadUserProfile() {
+            if (isOffline || !currentUser || !db) return;
+            try {
+                const profileRef = doc(db, 'artifacts', appId, 'users', currentUser.uid, 'profile', 'data');
+                const snap = await getDoc(profileRef);
+                if (snap.exists() && snap.data().username) {
+                    userProfileData.username = snap.data().username;
+                    localStorage.setItem('monkeytype_local_user', snap.data().username);
+                }
+            } catch(e) {
+                console.warn("Could not fetch user profile", e);
+            }
+            profileNameDisplay.innerText = userProfileData.username || "Guest";
+        }
+
+        async function saveUserProfile(name) {
+            userProfileData.username = name;
+            localStorage.setItem('monkeytype_local_user', name);
+            profileNameDisplay.innerText = name;
+
+            if (isOffline || !currentUser || !db) return true;
+            try {
+                const profileRef = doc(db, 'artifacts', appId, 'users', currentUser.uid, 'profile', 'data');
+                await setDoc(profileRef, { username: name, updatedAt: Date.now() }, { merge: true });
+                return true;
+            } catch(e) {
+                return false;
+            }
+        }
+
+        function openAuthModal() {
+            authError.classList.add('hide');
+            // Pre-fill username if they have one locally and aren't 'Guest'
+            if (userProfileData.username !== "Guest" && !currentUser?.email) {
+                usernameInput.value = userProfileData.username;
+            } else {
+                usernameInput.value = "";
+            }
+            passwordInput.value = "";
+            
+            authModal.classList.remove('opacity-0', 'pointer-events-none');
+            authModalCard.classList.remove('scale-95');
+            authModalCard.classList.add('scale-100');
+        }
+
+        function closeAuthModal() {
+            authModal.classList.add('opacity-0', 'pointer-events-none');
+            authModalCard.classList.remove('scale-100');
+            authModalCard.classList.add('scale-95');
+        }
+
+        authModalTrigger.addEventListener('click', openAuthModal);
+        closeAuthBtn.addEventListener('click', closeAuthModal);
+        guestBtn.addEventListener('click', closeAuthModal);
+
+        if (signupBtn && loginBtn) {
+            signupBtn.addEventListener('click', async () => {
+                const username = usernameInput.value.trim();
+                const password = passwordInput.value;
+                
+                if (username.length < 3) {
+                    authError.innerText = "Username must be at least 3 characters.";
+                    authError.classList.remove('hide');
+                    return;
+                }
+                if (password.length < 6) {
+                    authError.innerText = "Password must be at least 6 characters.";
+                    authError.classList.remove('hide');
+                    return;
+                }
+                
+                if (isOffline) {
+                    // Just save locally if offline
+                    saveUserProfile(username);
+                    closeAuthModal();
+                    return;
+                }
+                
+                signupBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
+                const dummyEmail = getDummyEmail(username);
+                
+                try {
+                    await createUserWithEmailAndPassword(auth, dummyEmail, password);
+                    await saveUserProfile(username);
+                    closeAuthModal();
+                } catch (error) {
+                    // Handle case where username exists (Firebase says email in use)
+                    if (error.code === 'auth/email-already-in-use') {
+                        authError.innerText = "Username already taken! Please choose another or Login.";
+                    } else {
+                        authError.innerText = error.message.replace('Firebase: ', '');
+                    }
+                    authError.classList.remove('hide');
+                } finally {
+                    signupBtn.innerText = 'Create Account';
+                }
+            });
+
+            loginBtn.addEventListener('click', async () => {
+                const username = usernameInput.value.trim();
+                const password = passwordInput.value;
+                
+                if (!username || !password) {
+                    authError.innerText = "Please enter both username and password.";
+                    authError.classList.remove('hide');
+                    return;
+                }
+                
+                if (isOffline) {
+                    saveUserProfile(username);
+                    closeAuthModal();
+                    return;
+                }
+
+                loginBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
+                const dummyEmail = getDummyEmail(username);
+
+                try {
+                    await signInWithEmailAndPassword(auth, dummyEmail, password);
+                    // Name is loaded via onAuthStateChanged, but we'll enforce it here too
+                    await loadUserProfile();
+                    closeAuthModal();
+                } catch (error) {
+                    if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
+                        authError.innerText = "Incorrect username or password.";
+                    } else {
+                        authError.innerText = error.message.replace('Firebase: ', '');
+                    }
+                    authError.classList.remove('hide');
+                } finally {
+                    loginBtn.innerText = 'Login';
+                }
+            });
+        }
+
+        logoutBtn.addEventListener('click', async () => {
+            if (auth) {
+                await signOut(auth);
+                await signInAnonymously(auth);
+                userProfileData.username = "Guest";
+                profileNameDisplay.innerText = "Guest";
+                closeAuthModal();
+                // Reset local streaks for guest to prevent accidental saving
+                bestStreak = 0;
+                currentStreak = 0;
+                updateStreakUI();
+            }
+        });
+
+        function switchView(target) {
+            currentView = target;
+            if (target === 'test') {
+                viewTest.classList.remove('hide');
+                viewLeaderboard.classList.add('hide');
+                configBar.classList.remove('invisible');
+                navTestBtn.className = "px-3 py-1.5 rounded-md text-xs font-semibold text-[var(--main-color)] bg-[var(--bg-color)] transition-all flex items-center gap-1.5";
+                navLeaderboardBtn.className = "px-3 py-1.5 rounded-md text-xs font-semibold text-[var(--sub-color)] hover:text-[var(--text-color)] transition-all flex items-center gap-1.5";
+            } else {
+                viewTest.classList.add('hide');
+                viewLeaderboard.classList.remove('hide');
+                configBar.classList.add('invisible');
+                navLeaderboardBtn.className = "px-3 py-1.5 rounded-md text-xs font-semibold text-[var(--main-color)] bg-[var(--bg-color)] transition-all flex items-center gap-1.5";
+                navTestBtn.className = "px-3 py-1.5 rounded-md text-xs font-semibold text-[var(--sub-color)] hover:text-[var(--text-color)] transition-all flex items-center gap-1.5";
+                fetchLeaderboard();
+            }
+        }
+
+        navTestBtn.addEventListener('click', () => switchView('test'));
+        navLeaderboardBtn.addEventListener('click', () => switchView('leaderboard'));
+        logoBtn.addEventListener('click', () => switchView('test'));
+
+        function loadStreaks() {
+            currentStreak = parseInt(localStorage.getItem(`squad_streak_${mode}_${length}`)) || 0;
+            bestStreak = parseInt(localStorage.getItem(`squad_best_${mode}_${length}`)) || 0;
+        }
+
+        function updateStreakUI(flashing = false, failed = false) {
+            if (currentStreak > bestStreak) {
+                bestStreak = currentStreak;
+                localStorage.setItem(`squad_best_${mode}_${length}`, bestStreak);
+            }
+
+            streakValue.innerText = currentStreak;
+            bestStreakValue.innerText = bestStreak;
+            localStorage.setItem(`squad_streak_${mode}_${length}`, currentStreak);
+            
+            if (currentStreak > 0) {
+                streakDisplay.classList.add('streak-active');
+            } else {
+                streakDisplay.classList.remove('streak-active');
+            }
+
+            if (failed) {
+                streakDisplay.classList.add('streak-broken');
+                setTimeout(() => streakDisplay.classList.remove('streak-broken'), 500);
+            } else if (flashing) {
+                streakDisplay.classList.add('streak-success');
+                setTimeout(() => streakDisplay.classList.remove('streak-success'), 1000);
+            }
+        }
+
+        function getRandomWords(count) {
+            const arr = [];
+            for(let i = 0; i < count; i++) {
+                const rand = Math.floor(Math.random() * wordList.length);
+                arr.push(wordList[rand]);
+            }
+            return arr;
+        }
+
+        function renderWords() {
+            wordsContainer.innerHTML = '';
+            wordsContainer.style.top = '0px';
+            
+            const wordCount = mode === 'time' ? 300 : length;
+            words = getRandomWords(wordCount);
+            
+            words.forEach((wordText) => {
+                const wordEl = document.createElement('div');
+                wordEl.className = 'word';
+                
+                for(let i = 0; i < wordText.length; i++) {
+                    const letterEl = document.createElement('span');
+                    letterEl.className = 'letter';
+                    letterEl.innerText = wordText[i];
+                    wordEl.appendChild(letterEl);
+                }
+                wordsContainer.appendChild(wordEl);
+            });
+            
+            currentWordIndex = 0;
+            activeWordElement = wordsContainer.children[currentWordIndex];
+            if (activeWordElement) activeWordElement.classList.add('active');
+            updateCaretPosition();
+        }
+
+        function updateCaretPosition() {
+            const wordEl = wordsContainer.children[currentWordIndex];
+            if (!wordEl) return;
+            
+            let activeLetterIndex = -1;
+            const letters = wordEl.querySelectorAll('.letter');
+            for(let i = 0; i < letters.length; i++) {
+                if(!letters[i].classList.contains('correct') && !letters[i].classList.contains('incorrect')) {
+                    activeLetterIndex = i;
+                    break;
+                }
+            }
+            
+            let targetEl;
+            let appendRight = false;
+            
+            if (activeLetterIndex === -1) {
+                targetEl = letters[letters.length - 1];
+                appendRight = true;
+            } else {
+                targetEl = letters[activeLetterIndex];
+            }
+
+            if (targetEl) {
+                const containerRect = typingTestDiv.getBoundingClientRect();
+                const charRect = targetEl.getBoundingClientRect();
+                const lineHeight = 48; 
+
+                if (charRect.top > containerRect.top + (lineHeight * 1.5)) {
+                    const currentTop = parseInt(wordsContainer.style.top || 0);
+                    wordsContainer.style.top = (currentTop - lineHeight) + 'px';
+                }
+                
+                if (charRect.top < containerRect.top - 5) {
+                    const currentTop = parseInt(wordsContainer.style.top || 0);
+                    wordsContainer.style.top = (currentTop + lineHeight) + 'px';
+                }
+
+                let leftPos = charRect.left - containerRect.left;
+                if (appendRight) leftPos += charRect.width;
+
+                caret.style.left = `${leftPos}px`;
+                
+                const newCharRect = targetEl.getBoundingClientRect();
+                let topPos = newCharRect.top - containerRect.top;
+                
+                caret.style.top = `${topPos + 8}px`; 
+            }
+        }
+
+        typingTestDiv.addEventListener('keydown', (e) => {
+            if (currentView !== 'test') return;
+
+            if (!hasStarted && e.key.length === 1 && !e.metaKey && !e.ctrlKey) {
+                startTest();
+            }
+
+            if (e.ctrlKey || e.metaKey || e.altKey || ["Tab", "Escape", "Enter", "Shift", "CapsLock", "Alt"].includes(e.key)) {
+                return;
+            }
+
+            e.preventDefault(); 
+
+            const currentWordEl = wordsContainer.children[currentWordIndex];
+            if (!currentWordEl) return;
+            const letters = currentWordEl.querySelectorAll('.letter');
+            
+            let untypedIndex = -1;
+            for(let i = 0; i < letters.length; i++) {
+                if(!letters[i].classList.contains('correct') && !letters[i].classList.contains('incorrect')) {
+                    untypedIndex = i;
+                    break;
+                }
+            }
+
+            if (e.key === ' ') {
+                if (untypedIndex === 0 && !letters[0].classList.contains('incorrect')) return; 
+                
+                let hasError = false;
+                letters.forEach(l => {
+                    if (l.classList.contains('incorrect') || (!l.classList.contains('correct') && !l.classList.contains('extra'))) {
+                        hasError = true;
+                    }
+                });
+                
+                if (hasError) {
+                    currentWordEl.classList.add('error-underline');
+                    breakStreak();
+                }
+                
+                currentWordIndex++;
+                if (currentWordIndex >= words.length) {
+                    endTest();
+                    return;
+                }
+                updateCaretPosition();
+                
+                if (mode === 'words') {
+                    liveStats.innerText = `${currentWordIndex}/${length}`;
+                    if (currentWordIndex >= length) endTest();
+                }
+                return;
+            }
+
+            if (e.key === 'Backspace') {
+                if (untypedIndex === 0) {
+                    if (currentWordIndex > 0) {
+                        const prevWord = wordsContainer.children[currentWordIndex - 1];
+                        if (prevWord.classList.contains('error-underline')) {
+                            prevWord.classList.remove('error-underline');
+                            currentWordIndex--;
+                            updateCaretPosition();
+                        }
+                    }
+                } else {
+                    let idxToRemove = untypedIndex === -1 ? letters.length - 1 : untypedIndex - 1;
+                    const letterEl = letters[idxToRemove];
+                    
+                    if (letterEl.classList.contains('extra')) {
+                        letterEl.remove();
+                    } else {
+                        letterEl.classList.remove('correct', 'incorrect');
+                    }
+                    updateCaretPosition();
+                }
+                return;
+            }
+
+            if (e.key.length === 1) {
+                if (untypedIndex !== -1) {
+                    const expected = letters[untypedIndex].innerText;
+                    if (e.key === expected) {
+                        letters[untypedIndex].classList.add('correct');
+                        correctChars++;
+                    } else {
+                        breakStreak();
+                        letters[untypedIndex].classList.add('incorrect');
+                        incorrectChars++;
+                    }
+                } else {
+                    breakStreak();
+                    const extra = document.createElement('span');
+                    extra.className = 'letter incorrect extra';
+                    extra.innerText = e.key;
+                    currentWordEl.appendChild(extra);
+                    extraChars++;
+                }
+                updateCaretPosition();
+            }
+        });
+
+        function breakStreak() {
+            if (isPerfectTest) {
+                isPerfectTest = false;
+                currentStreak = 0;
+                updateStreakUI(false, true); 
+            }
+        }
+
+        function startTest() {
+            hasStarted = true;
+            isPerfectTest = true;
+            timeElapsed = 0;
+            
+            configBar.style.opacity = '0';
+            languageIndicator.style.opacity = '0';
+            restartBtnContainer.style.opacity = '0';
+            
+            setTimeout(() => {
+                configBar.classList.add('invisible');
+                languageIndicator.classList.add('invisible');
+            }, 300);
+
+            if (mode === 'time') {
+                timeRemaining = length;
+                liveStats.innerText = timeRemaining;
+                
+                timer = setInterval(() => {
+                    timeRemaining--;
+                    timeElapsed++;
+                    liveStats.innerText = timeRemaining;
+                    if (timeRemaining <= 0) {
+                        endTest();
+                    }
+                }, 1000);
+            } else {
+                liveStats.innerText = `0/${length}`;
+                timer = setInterval(() => { timeElapsed++; }, 1000);
+            }
+        }
+
+        function resetTest() {
+            clearInterval(timer);
+            hasStarted = false;
+            isPerfectTest = true;
+            correctChars = 0; incorrectChars = 0; extraChars = 0; missedChars = 0;
+            
+            resultsScreen.classList.add('hide');
+            testContainer.classList.remove('hide');
+            liveStats.classList.remove('hide');
+            
+            configBar.classList.remove('invisible');
+            configBar.style.opacity = '1';
+            
+            languageIndicator.classList.remove('invisible');
+            languageIndicator.style.opacity = '1';
+            
+            restartBtnContainer.style.opacity = '1';
+
+            if (mode === 'time') {
+                liveStats.innerText = length;
+            } else {
+                liveStats.innerText = `0/${length}`;
+            }
+
+            renderWords();
+            
+            setTimeout(() => {
+                if (currentView === 'test') typingTestDiv.focus();
+            }, 10);
+        }
+
+        function endTest() {
+            clearInterval(timer);
+            hasStarted = false;
+            
+            if (timeElapsed === 0) timeElapsed = 1; 
+            
+            for(let i=0; i<currentWordIndex; i++) {
+                const w = wordsContainer.children[i];
+                if (w) {
+                    w.querySelectorAll('.letter').forEach(l => {
+                        if(!l.classList.contains('correct') && !l.classList.contains('incorrect') && !l.classList.contains('extra')) {
+                            missedChars++;
+                        }
+                    });
+                }
+            }
+
+            const totalErrors = incorrectChars + extraChars + missedChars;
+            const totalAttempted = correctChars + totalErrors;
+            const accuracy = totalAttempted === 0 ? 0 : (correctChars / totalAttempted) * 100;
+            const wpm = Math.round((correctChars / 5) / (timeElapsed / 60));
+
+            let meetsSpeedRatio = false;
+            if (mode === 'time') {
+                const minCharsRequired = (length / 3) * 5;
+                meetsSpeedRatio = correctChars >= minCharsRequired;
+            } else {
+                const maxTimeAllowed = length * 3;
+                meetsSpeedRatio = timeElapsed <= maxTimeAllowed;
+            }
+
+            if (isPerfectTest) {
+                if (totalAttempted > 0 && accuracy === 100 && meetsSpeedRatio) {
+                    currentStreak++;
+                    updateStreakUI(true, false); 
+                } else {
+                    isPerfectTest = false;
+                    currentStreak = 0;
+                    updateStreakUI(false, true); 
+                }
+            }
+
+            document.getElementById('result-wpm').innerText = wpm;
+            document.getElementById('result-acc').innerText = `${Math.round(accuracy)}%`;
+            document.getElementById('result-type').innerText = `${mode} ${length}`;
+            document.getElementById('result-chars').innerText = `${correctChars}/${incorrectChars}/${extraChars}/${missedChars}`;
+            document.getElementById('result-time').innerText = `${timeElapsed}s`;
+            
+            if(isPerfectTest && totalAttempted > 0) {
+                document.getElementById('result-streak').innerHTML = `<span style="color: var(--main-color)">+1 Perfect</span> (${currentStreak})`;
+            } else {
+                document.getElementById('result-streak').innerHTML = `Broken <span class="text-sm" style="color: var(--sub-color)">(0)</span>`;
+            }
+            document.getElementById('result-best-streak').innerText = bestStreak;
+
+            testContainer.classList.add('hide');
+            liveStats.classList.add('hide');
+            configBar.classList.add('invisible');
+            languageIndicator.classList.add('invisible');
+            restartBtnContainer.style.opacity = '0';
+            
+            resultsScreen.classList.remove('hide');
+            document.getElementById('next-test-btn').focus();
+
+            // Sync score only if they are logged in with an account, or save locally if guest
+            syncScoreToCloud(bestStreak, wpm);
+        }
+
+        async function syncScoreToCloud(scoreStreak, wpm) {
+            saveLocalScore(scoreStreak, wpm);
+
+            if (isOffline || !currentUser || !db || scoreStreak === 0) return;
+            // Guests shouldn't bloat the global leaderboard unless desired. 
+            // If they are anonymous, we can skip cloud sync or let it happen under "Guest".
+            if (currentUser.isAnonymous && userProfileData.username === "Guest") return;
+
+            try {
+                const name = userProfileData.username || "Guest";
+                const userScoreRef = doc(db, 'artifacts', appId, 'leaderboards', `${mode}_${length}`, 'users', currentUser.uid);
+                await setDoc(userScoreRef, {
+                    username: name,
+                    streak: scoreStreak,
+                    wpm: wpm,
+                    updatedAt: Date.now()
+                }, { merge: true });
+            } catch(e) {
+                console.warn("Could not sync score to cloud", e);
+            }
+        }
+
+        function saveLocalScore(scoreStreak, wpm) {
+            if (scoreStreak === 0) return;
+            const localData = JSON.parse(localStorage.getItem('monkeytype_local_lb') || '{}');
+            const key = `${mode}_${length}`;
+            if (!localData[key]) localData[key] = [];
+            
+            const name = userProfileData.username || "Guest";
+            const existingIdx = localData[key].findIndex(i => i.username === name);
+            if (existingIdx >= 0) {
+                if (scoreStreak >= localData[key][existingIdx].streak) {
+                    localData[key][existingIdx] = { username: name, streak: scoreStreak, wpm: wpm };
+                }
+            } else {
+                localData[key].push({ username: name, streak: scoreStreak, wpm: wpm });
+            }
+            localData[key].sort((a,b) => b.streak - a.streak || b.wpm - a.wpm);
+            localStorage.setItem('monkeytype_local_lb', JSON.stringify(localData));
+        }
+
+        async function fetchLeaderboard() {
+            lbCategoryTitle.innerText = `Top Streaks for ${mode} ${length}`;
+            
+            if (isOffline || !db) {
+                lbStatus.innerText = "Local Mode (Scores visible only to you)";
+                lbStatus.className = "text-xs text-amber-500 font-mono bg-[var(--sub-alt-color)] px-3 py-1.5 rounded-lg border border-neutral-800";
+                renderLocalLeaderboard();
+                return;
+            }
+
+            lbStatus.innerText = "Syncing live...";
+            lbStatus.className = "text-xs text-[var(--main-color)] font-mono bg-[var(--sub-alt-color)] px-3 py-1.5 rounded-lg border border-neutral-800";
+
+            try {
+                const lbRef = collection(db, 'artifacts', appId, 'leaderboards', `${mode}_${length}`, 'users');
+                const q = query(lbRef, orderBy('streak', 'desc'), limit(25));
+                const querySnap = await getDocs(q);
+
+                if (querySnap.empty) {
+                    renderLocalLeaderboard();
+                    return;
+                }
+
+                let html = '';
+                let rank = 1;
+                querySnap.forEach(docSnap => {
+                    const data = docSnap.data();
+                    const isSelf = currentUser && docSnap.id === currentUser.uid;
+                    html += `
+                        <div class="grid grid-cols-12 gap-2 px-6 py-3 text-xs items-center ${isSelf ? 'bg-cyan-950/30 text-[var(--main-color)] font-bold' : 'text-[var(--text-color)] hover:bg-neutral-800/40'}">
+                            <div class="col-span-1 text-center font-mono ${rank <= 3 ? 'text-[var(--main-color)] font-bold' : 'text-[var(--sub-color)]'}">
+                                ${rank === 1 ? '<i class="fa-solid fa-crown text-amber-400"></i>' : `#${rank}`}
+                            </div>
+                            <div class="col-span-5 md:col-span-6 flex items-center gap-2 truncate">
+                                <i class="fa-solid fa-user-ninja text-[var(--sub-color)] text-sm"></i>
+                                <span class="truncate">${data.username || 'Anonymous'}</span>
+                            </div>
+                            <div class="col-span-3 md:col-span-3 text-right font-bold font-mono text-[var(--main-color)]">
+                                ${data.streak} 🔥
+                            </div>
+                            <div class="col-span-3 md:col-span-2 text-right font-mono text-[var(--sub-color)]">
+                                ${data.wpm || 0} wpm
+                            </div>
+                        </div>
+                    `;
+                    rank++;
+                });
+                leaderboardList.innerHTML = html;
+                lbStatus.innerText = "Live Sync";
+            } catch(e) {
+                renderLocalLeaderboard();
+            }
+        }
+
+        function renderLocalLeaderboard() {
+            const localData = JSON.parse(localStorage.getItem('monkeytype_local_lb') || '{}');
+            const key = `${mode}_${length}`;
+            const items = localData[key] || [];
+
+            if (items.length === 0) {
+                leaderboardList.innerHTML = `
+                    <div class="p-8 text-center text-[var(--sub-color)] text-sm">
+                        No streaks recorded yet for this mode. Complete a test to claim rank #1!
+                    </div>
+                `;
+                return;
+            }
+
+            let html = '';
+            items.slice(0, 25).forEach((item, idx) => {
+                const rank = idx + 1;
+                const isSelf = item.username === userProfileData.username;
+                html += `
+                    <div class="grid grid-cols-12 gap-2 px-6 py-3 text-xs items-center ${isSelf ? 'bg-cyan-950/30 text-[var(--main-color)] font-bold' : 'text-[var(--text-color)] hover:bg-neutral-800/40'}">
+                        <div class="col-span-1 text-center font-mono ${rank <= 3 ? 'text-[var(--main-color)] font-bold' : 'text-[var(--sub-color)]'}">
+                            ${rank === 1 ? '<i class="fa-solid fa-crown text-amber-400"></i>' : `#${rank}`}
+                        </div>
+                        <div class="col-span-5 md:col-span-6 flex items-center gap-2 truncate">
+                            <i class="fa-solid fa-user-ninja text-[var(--sub-color)] text-sm"></i>
+                            <span class="truncate">${item.username}</span>
+                        </div>
+                        <div class="col-span-3 md:col-span-3 text-right font-bold font-mono text-[var(--main-color)]">
+                            ${item.streak} 🔥
+                        </div>
+                        <div class="col-span-3 md:col-span-2 text-right font-mono text-[var(--sub-color)]">
+                            ${item.wpm || 0} wpm
+                        </div>
+                    </div>
+                `;
+            });
+            leaderboardList.innerHTML = html;
+        }
+
+        function setupConfigListeners() {
+            const modeItems = document.querySelectorAll('.config-item[data-mode]');
+            const lengthContainer = document.getElementById('config-lengths');
+            
+            modeItems.forEach(item => {
+                item.addEventListener('click', (e) => {
+                    modeItems.forEach(i => i.classList.remove('active'));
+                    e.currentTarget.classList.add('active');
+                    mode = e.currentTarget.dataset.mode;
+                    
+                    lengthContainer.innerHTML = '';
+                    const lengths = mode === 'time' ? [15, 30, 60, 120] : [10, 25, 50, 100];
+                    lengths.forEach((val, idx) => {
+                        const span = document.createElement('span');
+                        span.className = `config-item ${idx === 1 ? 'active' : ''}`;
+                        span.dataset.val = val;
+                        span.innerText = val;
+                        span.addEventListener('click', lengthClickHandler);
+                        lengthContainer.appendChild(span);
+                    });
+                    
+                    length = lengths[1];
+                    loadStreaks(); 
+                    updateStreakUI();
+                    resetTest();
+                    if (currentView === 'leaderboard') fetchLeaderboard();
+                });
+            });
+
+            function lengthClickHandler(e) {
+                document.querySelectorAll('#config-lengths .config-item').forEach(i => i.classList.remove('active'));
+                e.currentTarget.classList.add('active');
+                length = parseInt(e.currentTarget.dataset.val);
+                loadStreaks(); 
+                updateStreakUI();
+                resetTest();
+                if (currentView === 'leaderboard') fetchLeaderboard();
+            }
+
+            document.querySelectorAll('#config-lengths .config-item[data-val]').forEach(i => {
+                i.addEventListener('click', lengthClickHandler);
+            });
+        }
+
+        function initApp() {
+            initAuth();
+            loadStreaks();
+            updateStreakUI();
+            setupConfigListeners();
+            
+            typingTestDiv.addEventListener('focus', () => focusOverlay.classList.add('hidden'));
+            typingTestDiv.addEventListener('blur', () => {
+                if(!resultsScreen.classList.contains('hide') || currentView !== 'test') return;
+                focusOverlay.classList.remove('hidden');
+            });
+            focusOverlay.addEventListener('click', () => typingTestDiv.focus());
+            
+            document.addEventListener('keydown', (e) => {
+                if (currentView !== 'test') return;
+                
+                // Allow user to type in input fields without stealing focus
+                if (document.activeElement && (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA')) {
+                    return;
+                }
+
+                if (document.activeElement !== typingTestDiv && e.key.length === 1 && !e.ctrlKey && !e.metaKey) {
+                    typingTestDiv.focus();
+                }
+                if (e.key === 'Tab') {
+                    e.preventDefault(); 
+                    resetTest();
+                }
+                if (e.key === ' ' && (e.target === document.body || e.target.tagName === 'BUTTON' || e.target.tagName === 'A')) {
+                    e.preventDefault();
+                }
+            });
+
+            restartBtn.addEventListener('click', resetTest);
+            document.getElementById('next-test-btn').addEventListener('click', resetTest);
+
+            typingTestDiv.addEventListener('keydown', () => {
+                caret.classList.add('typing');
+                clearTimeout(caret.typingTimeout);
+                caret.typingTimeout = setTimeout(() => caret.classList.remove('typing'), 500);
+            });
+
+            resetTest();
+        }
+
+        window.addEventListener('DOMContentLoaded', initApp);
+    </script>
+</body>
+</html>
