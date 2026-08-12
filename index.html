@@ -266,7 +266,7 @@
                     <span class="cursor-pointer hover:text-[var(--text-color)] transition-colors"><i class="fa-solid fa-globe mr-1.5"></i>english</span>
                 </div>
 
-                <div id="live-stats" class="text-[1.5rem] text-[var(--main-color)] font-medium mb-2 h-8 transition-opacity duration-300 text-center">
+                <div id="live-stats" class="text-[1.5rem] text-[var(--main-color)] font-medium mb-2 h-8 transition-opacity duration-300 text-left">
                     30
                 </div>
 
@@ -338,7 +338,7 @@
             </div>
 
             <div id="view-leaderboard" class="hide w-full flex flex-col">
-                <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
+                <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 gap-4">
                     <div>
                         <h2 class="text-2xl font-bold text-[var(--text-color)] flex items-center gap-2">
                             <i class="fa-solid fa-trophy text-[var(--main-color)]"></i> Squad Leaderboard
@@ -348,6 +348,17 @@
                     
                     <div id="lb-status" class="text-xs text-[var(--sub-color)] font-mono bg-[var(--sub-alt-color)] px-3 py-1.5 rounded-lg border border-neutral-800">
                         Live Sync
+                    </div>
+                </div>
+
+                <!-- Leaderboard Category Navigation Tabs -->
+                <div class="flex flex-wrap items-center justify-between gap-3 mb-6 bg-[var(--sub-alt-color)] p-2 rounded-xl border border-neutral-800/80 text-xs">
+                    <div class="flex items-center gap-1 bg-[var(--bg-color)] p-1 rounded-lg" id="lb-mode-tabs">
+                        <button class="lb-mode-btn active px-3 py-1 rounded-md transition-all font-semibold text-[var(--main-color)] bg-[var(--sub-alt-color)]" data-mode="time">time</button>
+                        <button class="lb-mode-btn px-3 py-1 rounded-md transition-all font-semibold text-[var(--sub-color)] hover:text-[var(--text-color)]" data-mode="words">words</button>
+                    </div>
+                    <div class="flex items-center gap-1.5 overflow-x-auto py-0.5" id="lb-length-tabs">
+                        <!-- Dynamically populated length chips -->
                     </div>
                 </div>
 
@@ -409,9 +420,33 @@
                     </div>
 
                     <!-- Only shown when logged in -->
-                    <button id="logout-btn" class="w-full bg-red-950/50 hover:bg-red-900/60 text-red-200 border border-red-800/50 font-bold py-2.5 rounded-lg transition-all text-sm justify-center items-center gap-2 hidden">
-                        <i class="fa-solid fa-right-from-bracket"></i> Sign Out
-                    </button>
+                    <div id="logged-in-section" class="flex flex-col gap-2.5 hidden">
+                        <button id="logout-btn" class="w-full bg-[var(--sub-alt-color)] hover:bg-[#323437] text-[var(--text-color)] font-bold py-2.5 rounded-lg transition-all text-sm flex justify-center items-center gap-2 border border-neutral-800">
+                            <i class="fa-solid fa-right-from-bracket"></i> Sign Out
+                        </button>
+                        <button id="toggle-delete-btn" class="w-full bg-red-950/30 hover:bg-red-950/60 text-red-400 hover:text-red-300 border border-red-900/40 font-medium py-2 rounded-lg transition-all text-xs flex justify-center items-center gap-2">
+                            <i class="fa-solid fa-trash-can"></i> Delete Account
+                        </button>
+                        
+                        <!-- Delete Confirmation Box -->
+                        <div id="delete-confirm-box" class="hide flex flex-col gap-2.5 p-3 mt-1 bg-red-950/20 border border-red-900/50 rounded-xl">
+                            <p class="text-xs text-red-300 font-medium leading-relaxed">
+                                <i class="fa-solid fa-triangle-exclamation mr-1"></i> Warning: This will permanently delete your account and saved scores.
+                            </p>
+                            <div>
+                                <label class="block text-[var(--sub-color)] text-[10px] uppercase font-bold tracking-wider mb-1">Confirm Password</label>
+                                <input type="password" id="delete-password-input" class="w-full bg-[var(--sub-alt-color)] text-[var(--text-color)] px-3 py-2 rounded-lg outline-none focus:ring-1 focus:ring-red-500 text-xs border border-neutral-800" placeholder="Enter password to confirm">
+                            </div>
+                            <div class="flex gap-2 mt-1">
+                                <button id="cancel-delete-btn" class="w-1/2 bg-[var(--sub-alt-color)] text-[var(--sub-color)] hover:text-[var(--text-color)] py-1.5 rounded-lg text-xs font-semibold border border-neutral-800">
+                                    Cancel
+                                </button>
+                                <button id="confirm-delete-btn" class="w-1/2 bg-red-600 hover:bg-red-500 text-white font-bold py-1.5 rounded-lg text-xs transition-all flex justify-center items-center shadow-md shadow-red-950/50">
+                                    Confirm Delete
+                                </button>
+                            </div>
+                        </div>
+                    </div>
                     
                     <div class="relative flex py-2 items-center" id="guest-divider">
                         <div class="flex-grow border-t border-neutral-800"></div>
@@ -430,10 +465,9 @@
     </div>
 
     <script type="module">
-        /* Import Firebase modules safely */
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, onAuthStateChanged, signOut, createUserWithEmailAndPassword, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, doc, getDoc, setDoc, collection, query, orderBy, limit, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged, signOut, createUserWithEmailAndPassword, signInWithEmailAndPassword, reauthenticateWithCredential, EmailAuthProvider, deleteUser } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, getDoc, setDoc, deleteDoc, collection, query, orderBy, limit, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         const appId = 'monkeytype-squad-streak';
         
@@ -472,8 +506,13 @@
             "the","be","of","and","a","to","in","he","have","it","that","for","they","I","with","as","not","on","she","at","by","this","we","you","do","but","from","or","which","one","would","all","will","there","say","who","make","when","can","more","if","no","man","out","other","so","what","time","up","go","about","than","into","could","state","only","new","year","some","take","come","these","know","see","use","get","like","then","first","any","work","now","may","such","give","over","think","most","even","find","day","also","after","way","many","must","look","before","great","back","through","long","where","much","should","well","people","down","own","just","because","good","each","those","feel","seem","how","high","too","place","little","world","very","still","nation","hand","old","life","tell","write","become","here","show","house","both","between","need","mean","call","develop","under","last","right","move","thing","general","school","never","same","another","begin","while","number","part","turn","real","leave","might","want","point","form","off","child","few","small","since","against","ask","late","home","interest","large","person","end","open","public","follow","during","present","without","again","hold","govern","around","possible","head","consider","word","program","problem","however","lead","system","set","order","eye","plan","run","keep","face","fact","group","play","stand","increase","early","course","change","help","line"
         ];
 
+        /* Variables mapped to DOM / Game state */
         let mode = 'time'; 
         let length = 30; 
+
+        /* Separate leaderboard navigation tab state */
+        let lbMode = 'time';
+        let lbLength = 30;
         
         let words = [];
         let currentWordIndex = 0;
@@ -523,11 +562,20 @@
         const closeAuthBtn = document.getElementById('close-auth-modal');
         
         const authInputsSection = document.getElementById('auth-inputs-section');
+        const loggedInSection = document.getElementById('logged-in-section');
+        
         const usernameInput = document.getElementById('username-input');
         const passwordInput = document.getElementById('password-input');
         const loginBtn = document.getElementById('login-btn');
         const signupBtn = document.getElementById('signup-btn');
+        
         const logoutBtn = document.getElementById('logout-btn');
+        const toggleDeleteBtn = document.getElementById('toggle-delete-btn');
+        const deleteConfirmBox = document.getElementById('delete-confirm-box');
+        const deletePasswordInput = document.getElementById('delete-password-input');
+        const cancelDeleteBtn = document.getElementById('cancel-delete-btn');
+        const confirmDeleteBtn = document.getElementById('confirm-delete-btn');
+        
         const guestBtn = document.getElementById('guest-btn');
         const guestDivider = document.getElementById('guest-divider');
 
@@ -537,6 +585,8 @@
         const lbStatus = document.getElementById('lb-status');
         const lbCategoryTitle = document.getElementById('lb-category-title');
         const leaderboardList = document.getElementById('leaderboard-list');
+        const lbLengthTabs = document.getElementById('lb-length-tabs');
+        const lbModeBtns = document.querySelectorAll('.lb-mode-btn');
 
         const getDummyEmail = (username) => {
             const cleanName = username.toLowerCase().replace(/[^a-z0-9]/g, '');
@@ -554,15 +604,20 @@
                         guestDivider.classList.add('hidden');
                         guestBtn.classList.add('hidden');
                         
+                        loggedInSection.classList.remove('hidden');
+                        loggedInSection.classList.add('flex');
+                        
+                        // Reset Delete Account flow states
+                        deleteConfirmBox.classList.add('hide');
                         logoutBtn.classList.remove('hidden');
-                        logoutBtn.classList.add('flex');
+                        toggleDeleteBtn.classList.remove('hidden');
                     } else {
                         authInputsSection.classList.remove('hidden');
                         guestDivider.classList.remove('hidden');
                         guestBtn.classList.remove('hidden');
                         
-                        logoutBtn.classList.add('hidden');
-                        logoutBtn.classList.remove('flex');
+                        loggedInSection.classList.add('hidden');
+                        loggedInSection.classList.remove('flex');
                     }
 
                     if (currentView === 'leaderboard') fetchLeaderboard();
@@ -575,8 +630,8 @@
                     guestDivider.classList.remove('hidden');
                     guestBtn.classList.remove('hidden');
                     
-                    logoutBtn.classList.add('hidden');
-                    logoutBtn.classList.remove('flex');
+                    loggedInSection.classList.add('hidden');
+                    loggedInSection.classList.remove('flex');
                 }
             });
         }
@@ -633,6 +688,12 @@
                 usernameInput.value = "";
             }
             passwordInput.value = "";
+            deletePasswordInput.value = "";
+            
+            // Re-hide delete confirm box upon opening modal
+            deleteConfirmBox.classList.add('hide');
+            logoutBtn.classList.remove('hidden');
+            toggleDeleteBtn.classList.remove('hidden');
             
             authModal.classList.remove('opacity-0', 'pointer-events-none');
             authModalCard.classList.remove('scale-95');
@@ -739,6 +800,63 @@
             }
         });
 
+        toggleDeleteBtn.addEventListener('click', () => {
+            deleteConfirmBox.classList.remove('hide');
+            logoutBtn.classList.add('hidden');
+            toggleDeleteBtn.classList.add('hidden');
+            deletePasswordInput.value = '';
+            authError.classList.add('hide');
+        });
+
+        cancelDeleteBtn.addEventListener('click', () => {
+            deleteConfirmBox.classList.add('hide');
+            logoutBtn.classList.remove('hidden');
+            toggleDeleteBtn.classList.remove('hidden');
+            authError.classList.add('hide');
+        });
+
+        confirmDeleteBtn.addEventListener('click', async () => {
+            const password = deletePasswordInput.value;
+            if (!password) {
+                authError.innerText = "Please enter your password to confirm.";
+                authError.classList.remove('hide');
+                return;
+            }
+
+            confirmDeleteBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
+            try {
+                // Re-authenticate using the dummy email assigned to this user and the password they typed
+                const credential = EmailAuthProvider.credential(currentUser.email, password);
+                await reauthenticateWithCredential(currentUser, credential);
+                
+                if (!isOffline && db) {
+                    // Wipe the user profile from DB (Scores remain but become anonymous logically)
+                    const profileRef = doc(db, 'artifacts', appId, 'users', currentUser.uid, 'profile', 'data');
+                    await deleteDoc(profileRef);
+                }
+
+                // Delete account in Firebase Auth
+                await deleteUser(currentUser);
+                
+                // Switch back to anonymous/guest user
+                await signInAnonymously(auth);
+                userProfileData.username = "Guest";
+                profileNameDisplay.innerText = "Guest";
+                bestStreak = 0;
+                currentStreak = 0;
+                updateStreakUI();
+                closeAuthModal();
+                
+            } catch(error) {
+                authError.innerText = (error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') 
+                    ? "Incorrect password. Cannot delete account." 
+                    : error.message.replace('Firebase: ', '');
+                authError.classList.remove('hide');
+            } finally {
+                confirmDeleteBtn.innerText = 'Confirm Delete';
+            }
+        });
+
         function switchView(target) {
             currentView = target;
             if (target === 'test') {
@@ -753,6 +871,22 @@
                 configBar.classList.add('invisible');
                 navLeaderboardBtn.className = "px-3 py-1.5 rounded-md text-xs font-semibold text-[var(--main-color)] bg-[var(--bg-color)] transition-all flex items-center gap-1.5";
                 navTestBtn.className = "px-3 py-1.5 rounded-md text-xs font-semibold text-[var(--sub-color)] hover:text-[var(--text-color)] transition-all flex items-center gap-1.5";
+                
+                // Sync leaderboard tabs to the active test configuration
+                lbMode = mode;
+                lbLength = length;
+                
+                lbModeBtns.forEach(b => {
+                    if (b.dataset.mode === lbMode) {
+                        b.classList.add('active', 'text-[var(--main-color)]', 'bg-[var(--sub-alt-color)]');
+                        b.classList.remove('text-[var(--sub-color)]');
+                    } else {
+                        b.classList.remove('active', 'text-[var(--main-color)]', 'bg-[var(--sub-alt-color)]');
+                        b.classList.add('text-[var(--sub-color)]');
+                    }
+                });
+                
+                renderLbLengths();
                 fetchLeaderboard();
             }
         }
@@ -831,7 +965,6 @@
             if (!wordEl) return;
             
             let activeLetterIndex = -1;
-            // Optimization: Use .children instead of querySelectorAll for instant DOM access
             const letters = wordEl.children; 
             for(let i = 0; i < letters.length; i++) {
                 if(!letters[i].classList.contains('correct') && !letters[i].classList.contains('incorrect')) {
@@ -847,20 +980,16 @@
                 targetEl = letters[letters.length - 1];
                 appendRight = true;
             } else {
-                targetEl = letters[activeLetterIndex]; // Bug fix: previously was letters[targetEl]
+                targetEl = letters[activeLetterIndex]; 
             }
 
             if (targetEl) {
-                // Optimization: Use offsetLeft/offsetTop to completely eliminate layout thrashing
                 let leftPos = targetEl.offsetLeft;
                 let topPos = targetEl.offsetTop;
                 
                 if (appendRight) leftPos += targetEl.offsetWidth;
 
                 const lineHeight = 48; 
-
-                // Cursor "stick and bounce" logic: 
-                // Keep the active line visually at line 2 max (top: 48px)
                 if (topPos > lineHeight) {
                     const shiftAmount = topPos - lineHeight;
                     wordsContainer.style.top = `-${shiftAmount}px`;
@@ -890,7 +1019,6 @@
             const currentWordEl = wordsContainer.children[currentWordIndex];
             if (!currentWordEl) return;
             
-            // Optimization: avoiding querySelectorAll on every keystroke
             const letters = currentWordEl.children; 
             
             let untypedIndex = -1;
@@ -1125,6 +1253,7 @@
 
             try {
                 const name = userProfileData.username || "Guest";
+                // Always sync to the actual 'mode' and 'length' of the test just completed
                 const userScoreRef = doc(db, 'artifacts', appId, 'leaderboards', `${mode}_${length}`, 'users', currentUser.uid);
                 await setDoc(userScoreRef, {
                     username: name,
@@ -1157,7 +1286,8 @@
         }
 
         async function fetchLeaderboard() {
-            lbCategoryTitle.innerText = `Top Streaks for ${mode} ${length}`;
+            // Updated to fetch according to lbMode and lbLength (the active leaderboard tabs)
+            lbCategoryTitle.innerText = `Top Streaks for ${lbMode} ${lbLength}`;
             
             if (isOffline || !db) {
                 lbStatus.innerText = "Local Mode (Scores visible only to you)";
@@ -1170,19 +1300,22 @@
             lbStatus.className = "text-xs text-[var(--main-color)] font-mono bg-[var(--sub-alt-color)] px-3 py-1.5 rounded-lg border border-neutral-800";
 
             try {
-                const lbRef = collection(db, 'artifacts', appId, 'leaderboards', `${mode}_${length}`, 'users');
+                const lbRef = collection(db, 'artifacts', appId, 'leaderboards', `${lbMode}_${lbLength}`, 'users');
                 const q = query(lbRef, orderBy('streak', 'desc'), limit(25));
                 const querySnap = await getDocs(q);
 
-                if (querySnap.empty) {
-                    renderLocalLeaderboard();
-                    return;
-                }
-
+                let hasRecords = false;
                 let html = '';
                 let rank = 1;
+                
                 querySnap.forEach(docSnap => {
                     const data = docSnap.data();
+                    
+                    if (data.username && data.username.toLowerCase() === 'testuser') {
+                        return;
+                    }
+                    
+                    hasRecords = true;
                     const isSelf = currentUser && docSnap.id === currentUser.uid;
                     html += `
                         <div class="grid grid-cols-12 gap-2 px-6 py-3 text-xs items-center ${isSelf ? 'bg-cyan-950/30 text-[var(--main-color)] font-bold' : 'text-[var(--text-color)] hover:bg-neutral-800/40'}">
@@ -1203,7 +1336,16 @@
                     `;
                     rank++;
                 });
-                leaderboardList.innerHTML = html;
+
+                if (!hasRecords) {
+                    leaderboardList.innerHTML = `
+                        <div class="p-8 text-center text-[var(--sub-color)] text-sm">
+                            No streaks recorded yet for this mode. Complete a test to claim rank #1!
+                        </div>
+                    `;
+                } else {
+                    leaderboardList.innerHTML = html;
+                }
                 lbStatus.innerText = "Live Sync";
             } catch(e) {
                 renderLocalLeaderboard();
@@ -1212,10 +1354,12 @@
 
         function renderLocalLeaderboard() {
             const localData = JSON.parse(localStorage.getItem('monkeytype_local_lb') || '{}');
-            const key = `${mode}_${length}`;
+            const key = `${lbMode}_${lbLength}`;
             const items = localData[key] || [];
+            
+            const filteredItems = items.filter(item => item.username && item.username.toLowerCase() !== 'testuser');
 
-            if (items.length === 0) {
+            if (filteredItems.length === 0) {
                 leaderboardList.innerHTML = `
                     <div class="p-8 text-center text-[var(--sub-color)] text-sm">
                         No streaks recorded yet for this mode. Complete a test to claim rank #1!
@@ -1225,7 +1369,7 @@
             }
 
             let html = '';
-            items.slice(0, 25).forEach((item, idx) => {
+            filteredItems.slice(0, 25).forEach((item, idx) => {
                 const rank = idx + 1;
                 const isSelf = item.username === userProfileData.username;
                 html += `
@@ -1274,7 +1418,6 @@
                     loadStreaks(); 
                     updateStreakUI();
                     resetTest();
-                    if (currentView === 'leaderboard') fetchLeaderboard();
                 });
             });
 
@@ -1285,7 +1428,6 @@
                 loadStreaks(); 
                 updateStreakUI();
                 resetTest();
-                if (currentView === 'leaderboard') fetchLeaderboard();
             }
 
             document.querySelectorAll('#config-lengths .config-item[data-val]').forEach(i => {
@@ -1293,11 +1435,55 @@
             });
         }
 
+        // Dedicated Leaderboard Tabs logic
+        function renderLbLengths() {
+            lbLengthTabs.innerHTML = '';
+            const lengths = lbMode === 'time' ? [15, 30, 60, 120] : [10, 25, 50, 100];
+            
+            if (!lengths.includes(lbLength)) {
+                lbLength = lengths[1]; 
+            }
+
+            lengths.forEach((val) => {
+                const btn = document.createElement('button');
+                const isActive = val === lbLength;
+                
+                btn.className = `px-3 py-1.5 rounded-md transition-all text-xs font-semibold ${isActive ? 'bg-[var(--main-color)] text-black border border-[var(--main-color)] shadow-sm' : 'bg-[var(--bg-color)] text-[var(--sub-color)] hover:text-[var(--text-color)] border border-transparent'}`;
+                btn.innerText = val;
+                btn.dataset.val = val;
+                
+                btn.addEventListener('click', (e) => {
+                    lbLength = parseInt(e.currentTarget.dataset.val);
+                    renderLbLengths();
+                    fetchLeaderboard();
+                });
+                lbLengthTabs.appendChild(btn);
+            });
+        }
+
+        lbModeBtns.forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                lbModeBtns.forEach(b => {
+                    b.classList.remove('active', 'text-[var(--main-color)]', 'bg-[var(--sub-alt-color)]');
+                    b.classList.add('text-[var(--sub-color)]');
+                });
+                
+                const target = e.currentTarget;
+                target.classList.add('active', 'text-[var(--main-color)]', 'bg-[var(--sub-alt-color)]');
+                target.classList.remove('text-[var(--sub-color)]');
+                
+                lbMode = target.dataset.mode;
+                renderLbLengths();
+                fetchLeaderboard();
+            });
+        });
+
         function initApp() {
             initAuth();
             loadStreaks();
             updateStreakUI();
             setupConfigListeners();
+            renderLbLengths();
             
             typingTestDiv.addEventListener('focus', () => focusOverlay.classList.add('hidden'));
             typingTestDiv.addEventListener('blur', () => {
