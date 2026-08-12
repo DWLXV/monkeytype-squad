@@ -437,15 +437,6 @@
 
         const appId = 'monkeytype-squad-streak';
         
-        /* 
-           ========================================================================
-           TO SHARE LEADERBOARDS WITH FRIENDS:
-           1. Create a free project at console.firebase.google.com
-           2. Enable 'Authentication' (Email/Password provider)
-           3. Enable 'Firestore Database' (Start in test mode or allow read/write)
-           4. Go to Project Settings, add a Web App, and paste the config below:
-           ========================================================================
-        */
         const myFirebaseConfig = {
             apiKey: "AIzaSyAjYIUxT2IdfapDmx30Cofu7tEpci_LF8I",
             authDomain: "monkeytype-2721.firebaseapp.com",
@@ -455,7 +446,6 @@
             appId: "1:971929388492:web:48994f5a6a7c5251648969"
         };
 
-        // Fallback for environment injected config (if used in specific platforms)
         let firebaseConfig = Object.keys(myFirebaseConfig).length > 0 ? myFirebaseConfig : {};
         if (typeof __firebase_config !== 'undefined' && Object.keys(firebaseConfig).length === 0) {
             try { firebaseConfig = JSON.parse(__firebase_config); } catch(e) {}
@@ -463,7 +453,6 @@
 
         let app, db, auth;
         let currentUser = null;
-        // By default, attempt to pull a local username, otherwise "Guest"
         let userProfileData = { username: localStorage.getItem('monkeytype_local_user') || "Guest" };
         let currentView = 'test';
         let isOffline = false;
@@ -504,7 +493,6 @@
         let bestStreak = 0;
         let isPerfectTest = true;
 
-        /* DOM Elements */
         const typingTestDiv = document.getElementById('typing-test');
         const wordsContainer = document.getElementById('words-container');
         const caret = document.getElementById('caret');
@@ -550,7 +538,6 @@
         const lbCategoryTitle = document.getElementById('lb-category-title');
         const leaderboardList = document.getElementById('leaderboard-list');
 
-        // Utility to generate a hidden dummy email from the username
         const getDummyEmail = (username) => {
             const cleanName = username.toLowerCase().replace(/[^a-z0-9]/g, '');
             return `${cleanName}@squad-local.app`;
@@ -563,7 +550,6 @@
                     await loadUserProfile();
                     
                     if (!user.isAnonymous) {
-                        // User is logged in
                         authInputsSection.classList.add('hidden');
                         guestDivider.classList.add('hidden');
                         guestBtn.classList.add('hidden');
@@ -571,7 +557,6 @@
                         logoutBtn.classList.remove('hidden');
                         logoutBtn.classList.add('flex');
                     } else {
-                        // User is anonymous (Guest)
                         authInputsSection.classList.remove('hidden');
                         guestDivider.classList.remove('hidden');
                         guestBtn.classList.remove('hidden');
@@ -583,7 +568,6 @@
                     if (currentView === 'leaderboard') fetchLeaderboard();
                 } else {
                     currentUser = null;
-                    // Reset to guest
                     userProfileData = { username: localStorage.getItem('monkeytype_local_user') || "Guest" };
                     profileNameDisplay.innerText = userProfileData.username;
                     
@@ -643,7 +627,6 @@
 
         function openAuthModal() {
             authError.classList.add('hide');
-            // Pre-fill username if they have one locally and aren't 'Guest'
             if (userProfileData.username !== "Guest" && !currentUser?.email) {
                 usernameInput.value = userProfileData.username;
             } else {
@@ -683,7 +666,6 @@
                 }
                 
                 if (isOffline) {
-                    // Just save locally if offline
                     saveUserProfile(username);
                     closeAuthModal();
                     return;
@@ -697,7 +679,6 @@
                     await saveUserProfile(username);
                     closeAuthModal();
                 } catch (error) {
-                    // Handle case where username exists (Firebase says email in use)
                     if (error.code === 'auth/email-already-in-use') {
                         authError.innerText = "Username already taken! Please choose another or Login.";
                     } else {
@@ -730,7 +711,6 @@
 
                 try {
                     await signInWithEmailAndPassword(auth, dummyEmail, password);
-                    // Name is loaded via onAuthStateChanged, but we'll enforce it here too
                     await loadUserProfile();
                     closeAuthModal();
                 } catch (error) {
@@ -753,7 +733,6 @@
                 userProfileData.username = "Guest";
                 profileNameDisplay.innerText = "Guest";
                 closeAuthModal();
-                // Reset local streaks for guest to prevent accidental saving
                 bestStreak = 0;
                 currentStreak = 0;
                 updateStreakUI();
@@ -852,7 +831,8 @@
             if (!wordEl) return;
             
             let activeLetterIndex = -1;
-            const letters = wordEl.querySelectorAll('.letter');
+            // Optimization: Use .children instead of querySelectorAll for instant DOM access
+            const letters = wordEl.children; 
             for(let i = 0; i < letters.length; i++) {
                 if(!letters[i].classList.contains('correct') && !letters[i].classList.contains('incorrect')) {
                     activeLetterIndex = i;
@@ -867,33 +847,30 @@
                 targetEl = letters[letters.length - 1];
                 appendRight = true;
             } else {
-                targetEl = letters[targetEl];
+                targetEl = letters[activeLetterIndex]; // Bug fix: previously was letters[targetEl]
             }
 
             if (targetEl) {
-                const containerRect = typingTestDiv.getBoundingClientRect();
-                const charRect = targetEl.getBoundingClientRect();
+                // Optimization: Use offsetLeft/offsetTop to completely eliminate layout thrashing
+                let leftPos = targetEl.offsetLeft;
+                let topPos = targetEl.offsetTop;
+                
+                if (appendRight) leftPos += targetEl.offsetWidth;
+
                 const lineHeight = 48; 
 
-                if (charRect.top > containerRect.top + (lineHeight * 1.5)) {
-                    const currentTop = parseInt(wordsContainer.style.top || 0);
-                    wordsContainer.style.top = (currentTop - lineHeight) + 'px';
+                // Cursor "stick and bounce" logic: 
+                // Keep the active line visually at line 2 max (top: 48px)
+                if (topPos > lineHeight) {
+                    const shiftAmount = topPos - lineHeight;
+                    wordsContainer.style.top = `-${shiftAmount}px`;
+                    caret.style.top = `${lineHeight + 8}px`; 
+                } else {
+                    wordsContainer.style.top = '0px';
+                    caret.style.top = `${topPos + 8}px`; 
                 }
-                
-                if (charRect.top < containerRect.top - 5) {
-                    const currentTop = parseInt(wordsContainer.style.top || 0);
-                    wordsContainer.style.top = (currentTop + lineHeight) + 'px';
-                }
-
-                let leftPos = charRect.left - containerRect.left;
-                if (appendRight) leftPos += charRect.width;
 
                 caret.style.left = `${leftPos}px`;
-                
-                const newCharRect = targetEl.getBoundingClientRect();
-                let topPos = newCharRect.top - containerRect.top;
-                
-                caret.style.top = `${topPos + 8}px`; 
             }
         }
 
@@ -912,7 +889,9 @@
 
             const currentWordEl = wordsContainer.children[currentWordIndex];
             if (!currentWordEl) return;
-            const letters = currentWordEl.querySelectorAll('.letter');
+            
+            // Optimization: avoiding querySelectorAll on every keystroke
+            const letters = currentWordEl.children; 
             
             let untypedIndex = -1;
             for(let i = 0; i < letters.length; i++) {
@@ -926,11 +905,13 @@
                 if (untypedIndex === 0 && !letters[0].classList.contains('incorrect')) return; 
                 
                 let hasError = false;
-                letters.forEach(l => {
+                for (let i = 0; i < letters.length; i++) {
+                    const l = letters[i];
                     if (l.classList.contains('incorrect') || (!l.classList.contains('correct') && !l.classList.contains('extra'))) {
                         hasError = true;
+                        break;
                     }
-                });
+                }
                 
                 if (hasError) {
                     currentWordEl.classList.add('error-underline');
@@ -1133,7 +1114,6 @@
             resultsScreen.classList.remove('hide');
             document.getElementById('next-test-btn').focus();
 
-            // Sync score only if they are logged in with an account, or save locally if guest
             syncScoreToCloud(bestStreak, wpm);
         }
 
@@ -1141,8 +1121,6 @@
             saveLocalScore(scoreStreak, wpm);
 
             if (isOffline || !currentUser || !db || scoreStreak === 0) return;
-            // Guests shouldn't bloat the global leaderboard unless desired. 
-            // If they are anonymous, we can skip cloud sync or let it happen under "Guest".
             if (currentUser.isAnonymous && userProfileData.username === "Guest") return;
 
             try {
@@ -1331,7 +1309,6 @@
             document.addEventListener('keydown', (e) => {
                 if (currentView !== 'test') return;
                 
-                // Allow user to type in input fields without stealing focus
                 if (document.activeElement && (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA')) {
                     return;
                 }
