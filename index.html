@@ -453,25 +453,59 @@
                 <div class="w-14 h-14 rounded-full bg-[var(--sub-alt-color)] text-[var(--main-color)] mx-auto flex items-center justify-center text-2xl mb-3 border border-theme transition-colors">
                     <i class="fa-solid fa-user-ninja"></i>
                 </div>
-                <h2 class="text-xl font-bold text-[var(--text-color)]">Squad Login</h2>
-                <p class="text-[var(--sub-color)] text-xs mt-1">Sign in using your unique username</p>
+                <h2 class="text-xl font-bold text-[var(--text-color)]">Squad Auth</h2>
+                <p class="text-[var(--sub-color)] text-xs mt-1">Sign in or create a unique username</p>
             </div>
             
             <div class="flex flex-col gap-4">
                 <div class="flex flex-col gap-3" id="auth-forms-container">
+                    
+                    <!-- Dynamic Auth Container (Guest / Logged In / Forms) -->
                     <div id="auth-inputs-section" class="flex flex-col gap-3">
+                        
+                        <!-- Tabs -->
+                        <div class="flex bg-[var(--sub-alt-color)] p-1 rounded-lg border border-theme mb-2">
+                            <button id="tab-login" class="flex-1 py-1.5 text-sm font-bold rounded-md bg-[var(--bg-color)] text-[var(--main-color)] shadow-sm transition-all">Login</button>
+                            <button id="tab-signup" class="flex-1 py-1.5 text-sm font-bold rounded-md text-[var(--sub-color)] hover:text-[var(--text-color)] transition-all">Sign Up</button>
+                        </div>
+
+                        <!-- Username Input (Shared) -->
                         <div>
                             <label class="block text-[var(--sub-color)] text-[10px] uppercase font-bold tracking-wider mb-1.5">Username</label>
                             <input type="text" id="username-input" class="w-full bg-[var(--sub-alt-color)] text-[var(--text-color)] px-4 py-2.5 rounded-lg outline-none focus:ring-2 focus:ring-[var(--main-color)] font-mono text-sm transition-all border border-theme placeholder:text-[var(--sub-color)]" placeholder="e.g. TypeMaster99" maxlength="15" autocomplete="off">
                         </div>
+                        
+                        <!-- Password Input (Shared) -->
                         <div>
                             <label class="block text-[var(--sub-color)] text-[10px] uppercase font-bold tracking-wider mb-1.5">Password</label>
                             <input type="password" id="password-input" class="w-full bg-[var(--sub-alt-color)] text-[var(--text-color)] px-4 py-2.5 rounded-lg outline-none focus:ring-2 focus:ring-[var(--main-color)] text-sm transition-all border border-theme placeholder:text-[var(--sub-color)]" placeholder="••••••••">
                         </div>
-                        <div class="flex gap-2 mt-2">
-                            <button id="login-btn" class="w-1/2 bg-[var(--sub-alt-color)] hover:brightness-110 text-[var(--text-color)] font-bold py-2.5 rounded-lg transition-all text-sm border border-theme flex justify-center items-center shadow-sm">Login</button>
-                            <button id="signup-btn" class="w-1/2 bg-[var(--main-color)] text-black font-bold py-2.5 rounded-lg hover:opacity-90 transition-all text-sm shadow-md flex justify-center items-center">Create Account</button>
+
+                        <!-- Warning Message (Sign up only) -->
+                        <div id="signup-warning" class="hide mt-1 p-3 bg-amber-900/10 border border-amber-900/30 rounded-lg">
+                            <p class="text-amber-500 text-[10px] leading-relaxed font-mono">
+                                <i class="fa-solid fa-triangle-exclamation mr-1"></i>
+                                <strong>WARNING:</strong> Since we don't ask for a real email address, <strong>password recovery is impossible!</strong> Write your password down. If you lose it, your account and stats are gone forever.
+                            </p>
                         </div>
+
+                        <!-- Action Buttons -->
+                        <div class="mt-2" id="auth-action-buttons">
+                            <button id="login-btn" class="w-full bg-[var(--sub-alt-color)] hover:brightness-110 text-[var(--text-color)] font-bold py-2.5 rounded-lg transition-all text-sm border border-theme flex justify-center items-center shadow-sm">Login to Squad</button>
+                            <button id="signup-btn" class="w-full bg-[var(--main-color)] text-black font-bold py-2.5 rounded-lg hover:opacity-90 transition-all text-sm shadow-md flex justify-center items-center hide">Create Account</button>
+                        </div>
+
+                        <!-- Forgot Password Helper (Login only) -->
+                        <div class="text-center mt-2" id="forgot-password-container">
+                            <button id="forgot-password-btn" class="text-[var(--sub-color)] hover:text-[var(--text-color)] text-xs transition-colors underline decoration-[var(--border-color)] underline-offset-4">Forgot Password?</button>
+                            <div id="forgot-password-msg" class="hide mt-3 p-3 bg-red-900/10 border border-red-900/30 rounded-lg text-left">
+                                <p class="text-[var(--text-color)] text-[11px] leading-relaxed">
+                                    <i class="fa-solid fa-circle-info text-red-400 mr-1"></i> Because you sign up with just a Username instead of a real email address, <strong>we cannot email you a password reset link.</strong><br><br>
+                                    Please ask the Squad Admin to delete your old account so you can recreate it.
+                                </p>
+                            </div>
+                        </div>
+
                     </div>
 
                     <div id="logged-in-section" class="flex flex-col gap-2.5 hidden">
@@ -606,6 +640,7 @@
         let currentView = 'test';
         let isOffline = false;
         let isAdminAuthed = false;
+        let authMode = 'login'; // 'login' or 'signup'
 
         try {
             if (!firebaseConfig.apiKey) throw new Error("No Firebase Config supplied");
@@ -682,8 +717,17 @@
         const loggedInSection = document.getElementById('logged-in-section');
         const usernameInput = document.getElementById('username-input');
         const passwordInput = document.getElementById('password-input');
+        
+        /* New Auth UI Elements */
+        const tabLogin = document.getElementById('tab-login');
+        const tabSignup = document.getElementById('tab-signup');
         const loginBtn = document.getElementById('login-btn');
         const signupBtn = document.getElementById('signup-btn');
+        const signupWarning = document.getElementById('signup-warning');
+        const forgotPasswordContainer = document.getElementById('forgot-password-container');
+        const forgotPasswordBtn = document.getElementById('forgot-password-btn');
+        const forgotPasswordMsg = document.getElementById('forgot-password-msg');
+
         const logoutBtn = document.getElementById('logout-btn');
         const toggleDeleteBtn = document.getElementById('toggle-delete-btn');
         const deleteConfirmBox = document.getElementById('delete-confirm-box');
@@ -915,7 +959,6 @@
                     await setDoc(profileRef, { username: newName, updatedAt: Date.now() }, { merge: true });
                     await syncUserRegistry();
 
-                    // Update all leaderboard docs safely via uid
                     for (const m of lbModesList) {
                         for (const l of lbLengthsList[m]) {
                             try {
@@ -959,7 +1002,48 @@
             }
         });
 
+        /* --- Auth Modal UI Logic --- */
+        function setAuthMode(mode) {
+            authMode = mode;
+            authError.classList.add('hide');
+            forgotPasswordMsg.classList.add('hide');
+            
+            if (mode === 'login') {
+                tabLogin.classList.replace('bg-[var(--bg-color)]', 'bg-[var(--bg-color)]');
+                tabLogin.classList.add('text-[var(--main-color)]', 'shadow-sm');
+                tabLogin.classList.remove('text-[var(--sub-color)]', 'hover:text-[var(--text-color)]');
+                
+                tabSignup.classList.remove('bg-[var(--bg-color)]', 'text-[var(--main-color)]', 'shadow-sm');
+                tabSignup.classList.add('text-[var(--sub-color)]', 'hover:text-[var(--text-color)]');
+
+                loginBtn.classList.remove('hide');
+                signupBtn.classList.add('hide');
+                signupWarning.classList.add('hide');
+                forgotPasswordContainer.classList.remove('hide');
+            } else {
+                tabSignup.classList.replace('bg-[var(--bg-color)]', 'bg-[var(--bg-color)]');
+                tabSignup.classList.add('text-[var(--main-color)]', 'shadow-sm');
+                tabSignup.classList.remove('text-[var(--sub-color)]', 'hover:text-[var(--text-color)]');
+                
+                tabLogin.classList.remove('bg-[var(--bg-color)]', 'text-[var(--main-color)]', 'shadow-sm');
+                tabLogin.classList.add('text-[var(--sub-color)]', 'hover:text-[var(--text-color)]');
+
+                signupBtn.classList.remove('hide');
+                loginBtn.classList.add('hide');
+                signupWarning.classList.remove('hide');
+                forgotPasswordContainer.classList.add('hide');
+            }
+        }
+
+        tabLogin.addEventListener('click', () => setAuthMode('login'));
+        tabSignup.addEventListener('click', () => setAuthMode('signup'));
+
+        forgotPasswordBtn.addEventListener('click', () => {
+            forgotPasswordMsg.classList.toggle('hide');
+        });
+
         function openAuthModal() {
+            setAuthMode('login');
             authError.classList.add('hide');
             usernameInput.value = ""; passwordInput.value = ""; deletePasswordInput.value = "";
             deleteConfirmBox.classList.add('hide');
@@ -995,7 +1079,6 @@
                     userProfileData.username = username;
                     profileNameDisplay.innerText = username;
                     
-                    // Initialize 0 streaks for all categories
                     userStats = {};
                     for (const m of lbModesList) {
                         for (const l of lbLengthsList[m]) {
@@ -1010,14 +1093,13 @@
                     if (!isOffline && db) {
                         const profileRef = doc(db, 'artifacts', appId, 'users', userCredential.user.uid, 'profile', 'data');
                         await setDoc(profileRef, { username: username, stats: userStats, updatedAt: Date.now() }, { merge: true });
-                        // sync registry
                         const registryRef = doc(db, 'artifacts', appId, 'public', 'data', 'userRegistry', userCredential.user.uid);
                         await setDoc(registryRef, { uid: userCredential.user.uid, username: username, email: directEmail, lastActive: Date.now(), stats: userStats });
                     }
                     
                     closeAuthModal();
                 } catch (error) {
-                    authError.innerText = error.code === 'auth/email-already-in-use' ? "Username already taken!" : error.message.replace('Firebase: ', '');
+                    authError.innerText = error.code === 'auth/email-already-in-use' ? "Username already taken! If it's yours, try logging in." : error.message.replace('Firebase: ', '');
                     authError.classList.remove('hide');
                 } finally {
                     signupBtn.innerText = 'Create Account';
@@ -1038,7 +1120,7 @@
                     authError.innerText = "Incorrect username or password.";
                     authError.classList.remove('hide');
                 } finally {
-                    loginBtn.innerText = 'Login';
+                    loginBtn.innerText = 'Login to Squad';
                 }
             });
         }
@@ -1068,7 +1150,6 @@
                 const credential = EmailAuthProvider.credential(currentUser.email, password);
                 await reauthenticateWithCredential(currentUser, credential);
                 
-                // Cleanup public data
                 if (!isOffline && db) {
                     for (const m of lbModesList) {
                         for (const l of lbLengthsList[m]) {
