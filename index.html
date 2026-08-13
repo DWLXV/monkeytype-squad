@@ -244,9 +244,6 @@
                     <button id="nav-leaderboard-btn" class="px-3 py-1.5 rounded-md text-xs font-semibold text-[var(--sub-color)] hover:text-[var(--text-color)] transition-all flex items-center gap-1.5">
                         <i class="fa-solid fa-trophy"></i> Leaderboard
                     </button>
-                    <button id="nav-admin-btn" class="px-3 py-1.5 rounded-md text-xs font-semibold text-[var(--sub-color)] hover:text-[var(--text-color)] transition-all flex items-center gap-1.5 hidden">
-                        <i class="fa-solid fa-shield-halved"></i> Admin
-                    </button>
                 </nav>
             </div>
 
@@ -272,7 +269,7 @@
 
                 <button id="auth-modal-trigger" class="flex items-center gap-2 bg-[var(--sub-alt-color)] hover:brightness-110 text-[var(--text-color)] px-3 py-1.5 rounded-lg text-xs font-semibold transition-all shadow-sm">
                     <i class="fa-solid fa-user-astronaut text-[var(--main-color)] transition-colors"></i>
-                    <span id="profile-name-display">Guest</span>
+                    <span id="profile-name-display">Loading...</span>
                 </button>
             </div>
         </header>
@@ -403,49 +400,15 @@
                     </div>
                 </div>
             </div>
-
-            <div id="view-admin" class="hide w-full flex flex-col">
-                <div class="flex justify-between items-end mb-6">
-                    <div>
-                        <h2 class="text-2xl font-bold text-[var(--text-color)] flex items-center gap-2">
-                            <i class="fa-solid fa-shield-halved text-[var(--error-color)]"></i> Admin Dashboard
-                        </h2>
-                        <p class="text-[var(--sub-color)] text-xs mt-1">Manage user accounts and view activities</p>
-                    </div>
-                    <button id="admin-refresh-btn" class="bg-[var(--sub-alt-color)] hover:bg-[var(--border-color)] text-[var(--text-color)] px-4 py-2 rounded-lg text-xs font-semibold border border-theme transition-colors">
-                        <i class="fa-solid fa-rotate"></i> Refresh
-                    </button>
-                </div>
-
-                <div id="admin-auth-overlay" class="bg-[var(--sub-alt-color)] rounded-2xl border border-theme p-8 text-center shadow-xl">
-                    <i class="fa-solid fa-lock text-4xl text-[var(--sub-color)] mb-4"></i>
-                    <h3 class="text-lg font-bold text-[var(--text-color)] mb-2">Admin Access Required</h3>
-                    <p class="text-xs text-[var(--sub-color)] mb-4">Please enter the admin passcode to view user data.</p>
-                    <div class="flex justify-center max-w-xs mx-auto gap-2">
-                        <input type="password" id="admin-passcode-input" class="w-full bg-[var(--bg-color)] text-[var(--text-color)] px-4 py-2 rounded-lg outline-none focus:ring-1 focus:ring-[var(--main-color)] text-sm border border-theme" placeholder="Passcode">
-                        <button id="admin-login-btn" class="bg-[var(--main-color)] text-black font-bold px-4 py-2 rounded-lg text-sm hover:opacity-90 transition-all">Login</button>
-                    </div>
-                    <p id="admin-auth-error" class="text-red-500 text-xs mt-2 hide">Incorrect passcode</p>
-                </div>
-
-                <div id="admin-content" class="hide bg-[var(--sub-alt-color)] rounded-2xl border border-theme overflow-hidden shadow-xl">
-                    <div class="grid grid-cols-12 gap-2 px-6 py-3 bg-[var(--bg-color)] opacity-90 text-[var(--sub-color)] text-xs font-bold uppercase tracking-wider border-b border-theme">
-                        <div class="col-span-4">User / Email</div>
-                        <div class="col-span-3">Last Active</div>
-                        <div class="col-span-3 text-center">Data Size</div>
-                        <div class="col-span-2 text-right">Actions</div>
-                    </div>
-                    <div id="admin-user-list" class="divide-y divide-[var(--border-color)] max-h-[500px] overflow-y-auto">
-                        <!-- Populated by JS -->
-                    </div>
-                </div>
-            </div>
         </main>
     </div>
 
+    <!-- Auth Modal -->
     <div id="auth-modal" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4 opacity-0 pointer-events-none transition-opacity duration-300">
         <div class="bg-[var(--bg-color)] border border-theme w-full max-w-md rounded-2xl p-6 shadow-2xl relative transform scale-95 transition-transform duration-300" id="auth-modal-card">
-            <button id="close-auth-modal" class="absolute top-4 right-4 text-[var(--sub-color)] hover:text-[var(--text-color)] text-lg w-8 h-8 rounded-lg flex items-center justify-center transition-colors">
+            
+            <!-- Close button (hidden when not logged in to enforce accounts) -->
+            <button id="close-auth-modal" class="absolute top-4 right-4 text-[var(--sub-color)] hover:text-[var(--text-color)] text-lg w-8 h-8 rounded-lg flex items-center justify-center transition-colors hidden">
                 <i class="fa-solid fa-xmark"></i>
             </button>
 
@@ -454,13 +417,13 @@
                     <i class="fa-solid fa-user-ninja"></i>
                 </div>
                 <h2 class="text-xl font-bold text-[var(--text-color)]">Squad Auth</h2>
-                <p class="text-[var(--sub-color)] text-xs mt-1">Sign in or create a unique username</p>
+                <p class="text-[var(--sub-color)] text-xs mt-1">An account is required to play and save scores.</p>
             </div>
             
             <div class="flex flex-col gap-4">
                 <div class="flex flex-col gap-3" id="auth-forms-container">
                     
-                    <!-- Dynamic Auth Container (Guest / Logged In / Forms) -->
+                    <!-- Dynamic Auth Container -->
                     <div id="auth-inputs-section" class="flex flex-col gap-3">
                         
                         <!-- Tabs -->
@@ -469,13 +432,13 @@
                             <button id="tab-signup" class="flex-1 py-1.5 text-sm font-bold rounded-md text-[var(--sub-color)] hover:text-[var(--text-color)] transition-all">Sign Up</button>
                         </div>
 
-                        <!-- Username Input (Shared) -->
+                        <!-- Username Input -->
                         <div>
                             <label class="block text-[var(--sub-color)] text-[10px] uppercase font-bold tracking-wider mb-1.5">Username</label>
                             <input type="text" id="username-input" class="w-full bg-[var(--sub-alt-color)] text-[var(--text-color)] px-4 py-2.5 rounded-lg outline-none focus:ring-2 focus:ring-[var(--main-color)] font-mono text-sm transition-all border border-theme placeholder:text-[var(--sub-color)]" placeholder="e.g. TypeMaster99" maxlength="15" autocomplete="off">
                         </div>
                         
-                        <!-- Password Input (Shared) -->
+                        <!-- Password Input -->
                         <div>
                             <label class="block text-[var(--sub-color)] text-[10px] uppercase font-bold tracking-wider mb-1.5">Password</label>
                             <input type="password" id="password-input" class="w-full bg-[var(--sub-alt-color)] text-[var(--text-color)] px-4 py-2.5 rounded-lg outline-none focus:ring-2 focus:ring-[var(--main-color)] text-sm transition-all border border-theme placeholder:text-[var(--sub-color)]" placeholder="••••••••">
@@ -530,22 +493,13 @@
                             </div>
                         </div>
                     </div>
-                    
-                    <div class="relative flex py-2 items-center" id="guest-divider">
-                        <div class="flex-grow border-t border-theme"></div>
-                        <span class="flex-shrink-0 mx-3 text-[var(--sub-color)] text-[10px] uppercase font-bold tracking-wider">OR</span>
-                        <div class="flex-grow border-t border-theme"></div>
-                    </div>
-
-                    <button id="guest-btn" class="w-full bg-transparent text-[var(--sub-color)] hover:text-[var(--text-color)] font-medium py-2 rounded-lg transition-all text-xs flex justify-center items-center gap-2">
-                        Continue as Guest (No Cloud Save)
-                    </button>
                 </div>
                 <div id="auth-error" class="text-[var(--error-color)] text-xs text-center hide font-medium mt-1 bg-red-900/20 py-2 rounded-lg border border-red-900/30"></div>
             </div>
         </div>
     </div>
 
+    <!-- Settings Modal -->
     <div id="settings-modal" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4 opacity-0 pointer-events-none transition-opacity duration-300">
         <div class="bg-[var(--bg-color)] border border-theme w-full max-w-md rounded-2xl p-6 shadow-2xl relative transform scale-95 transition-transform duration-300 max-h-[90vh] overflow-y-auto" id="settings-modal-card">
             <button id="close-settings-modal" class="absolute top-4 right-4 text-[var(--sub-color)] hover:text-[var(--text-color)] text-lg w-8 h-8 rounded-lg flex items-center justify-center transition-colors">
@@ -614,7 +568,7 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, onAuthStateChanged, signOut, createUserWithEmailAndPassword, signInWithEmailAndPassword, reauthenticateWithCredential, updatePassword, EmailAuthProvider, deleteUser, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getAuth, onAuthStateChanged, signOut, createUserWithEmailAndPassword, signInWithEmailAndPassword, reauthenticateWithCredential, updatePassword, EmailAuthProvider, deleteUser } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, doc, getDoc, setDoc, deleteDoc, collection, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'monkeytype-squad-streak-v3';
@@ -635,11 +589,10 @@
 
         let app, db, auth;
         let currentUser = null;
-        let userProfileData = { username: "Guest" };
+        let userProfileData = { username: "Loading..." };
         let userStats = {}; 
         let currentView = 'test';
         let isOffline = false;
-        let isAdminAuthed = false;
         let authMode = 'login'; // 'login' or 'signup'
 
         try {
@@ -702,10 +655,8 @@
 
         const navTestBtn = document.getElementById('nav-test-btn');
         const navLeaderboardBtn = document.getElementById('nav-leaderboard-btn');
-        const navAdminBtn = document.getElementById('nav-admin-btn');
         const viewTest = document.getElementById('view-test');
         const viewLeaderboard = document.getElementById('view-leaderboard');
-        const viewAdmin = document.getElementById('view-admin');
         const logoBtn = document.getElementById('logo-btn');
 
         /* Auth & Settings */
@@ -718,7 +669,7 @@
         const usernameInput = document.getElementById('username-input');
         const passwordInput = document.getElementById('password-input');
         
-        /* New Auth UI Elements */
+        /* Auth UI Elements */
         const tabLogin = document.getElementById('tab-login');
         const tabSignup = document.getElementById('tab-signup');
         const loginBtn = document.getElementById('login-btn');
@@ -734,8 +685,6 @@
         const deletePasswordInput = document.getElementById('delete-password-input');
         const cancelDeleteBtn = document.getElementById('cancel-delete-btn');
         const confirmDeleteBtn = document.getElementById('confirm-delete-btn');
-        const guestBtn = document.getElementById('guest-btn');
-        const guestDivider = document.getElementById('guest-divider');
         const profileNameDisplay = document.getElementById('profile-name-display');
         const authError = document.getElementById('auth-error');
         
@@ -763,15 +712,6 @@
         const themeBtns = document.querySelectorAll('.theme-btn');
         const colorBtns = document.querySelectorAll('.color-btn');
         const fontBtns = document.querySelectorAll('.font-btn');
-
-        /* Admin UI */
-        const adminAuthOverlay = document.getElementById('admin-auth-overlay');
-        const adminContent = document.getElementById('admin-content');
-        const adminPasscodeInput = document.getElementById('admin-passcode-input');
-        const adminLoginBtn = document.getElementById('admin-login-btn');
-        const adminAuthError = document.getElementById('admin-auth-error');
-        const adminUserList = document.getElementById('admin-user-list');
-        const adminRefreshBtn = document.getElementById('admin-refresh-btn');
 
         const getDirectEmail = (username) => {
             const clean = username.toLowerCase().replace(/[^a-z0-9]/g, '');
@@ -838,60 +778,54 @@
         if (auth) {
             onAuthStateChanged(auth, async (user) => {
                 if (user) {
+                    // Force old guest accounts to logout and create real accounts
+                    if (user.isAnonymous) {
+                        await signOut(auth);
+                        return; // This will re-trigger onAuthStateChanged with null
+                    }
+                    
                     currentUser = user;
                     await loadUserProfile();
                     
-                    if (!user.isAnonymous) {
-                        authInputsSection.classList.add('hidden');
-                        guestDivider.classList.add('hidden');
-                        guestBtn.classList.add('hidden');
-                        loggedInSection.classList.remove('hidden');
-                        loggedInSection.classList.add('flex');
-                        deleteConfirmBox.classList.add('hide');
-                        logoutBtn.classList.remove('hidden');
-                        toggleDeleteBtn.classList.remove('hidden');
-                        settingsAccountSection.classList.remove('hide');
-                        navAdminBtn.classList.remove('hidden');
-                        
-                        await syncUserRegistry(); 
-                    } else {
-                        authInputsSection.classList.remove('hidden');
-                        guestDivider.classList.remove('hidden');
-                        guestBtn.classList.remove('hidden');
-                        loggedInSection.classList.add('hidden');
-                        loggedInSection.classList.remove('flex');
-                        settingsAccountSection.classList.add('hide');
-                        navAdminBtn.classList.add('hidden');
-                    }
-
+                    authInputsSection.classList.add('hidden');
+                    loggedInSection.classList.remove('hidden');
+                    loggedInSection.classList.add('flex');
+                    deleteConfirmBox.classList.add('hide');
+                    logoutBtn.classList.remove('hidden');
+                    toggleDeleteBtn.classList.remove('hidden');
+                    settingsAccountSection.classList.remove('hide');
+                    
+                    closeAuthBtn.classList.remove('hidden'); // Allow closing modal
+                    closeAuthModal(); // Auto-close since auth was successful
+                    
+                    await syncUserRegistry(); 
                     loadStreaks();
                     if (currentView === 'leaderboard') fetchLeaderboard();
                 } else {
                     currentUser = null;
-                    userProfileData = { username: "Guest" };
+                    userProfileData = { username: "Log In" };
                     userStats = {};
-                    profileNameDisplay.innerText = "Guest";
-                    navAdminBtn.classList.add('hidden');
+                    profileNameDisplay.innerText = "Log In";
+                    
+                    // Force the user to log in or sign up
+                    openAuthModal();
+                    
+                    authInputsSection.classList.remove('hidden');
+                    loggedInSection.classList.add('hidden');
+                    loggedInSection.classList.remove('flex');
+                    settingsAccountSection.classList.add('hide');
+                    
                     loadStreaks();
                 }
             });
         }
 
         async function initAuth() {
+            // Nothing to do initially, onAuthStateChanged will handle prompting users.
             if (isOffline || !auth) {
-                profileNameDisplay.innerText = userProfileData.username;
+                profileNameDisplay.innerText = "Offline Mode";
                 return;
             }
-            try {
-                if (!auth.currentUser) {
-                    if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                        try { await signInWithCustomToken(auth, __initial_auth_token); } 
-                        catch(tokenErr) { await signInAnonymously(auth); }
-                    } else {
-                        await signInAnonymously(auth);
-                    }
-                }
-            } catch(e) { isOffline = true; }
         }
 
         async function loadUserProfile() {
@@ -905,11 +839,11 @@
                     if (data.stats) userStats = data.stats;
                 }
             } catch(e) {}
-            profileNameDisplay.innerText = userProfileData.username || "Guest";
+            profileNameDisplay.innerText = userProfileData.username || "Player";
         }
 
         async function syncUserRegistry() {
-            if (isOffline || !currentUser || currentUser.isAnonymous || !db) return;
+            if (isOffline || !currentUser || !db) return;
             try {
                 const registryRef = doc(db, 'artifacts', appId, 'public', 'data', 'userRegistry', currentUser.uid);
                 await setDoc(registryRef, {
@@ -930,8 +864,9 @@
         }
 
         settingsModalTrigger.addEventListener('click', () => {
+            if (!currentUser) { openAuthModal(); return; }
             settingsCurrentPassword.value = ""; settingsNewPassword.value = ""; settingsConfirmPassword.value = "";
-            settingsNewUsername.value = userProfileData.username !== "Guest" ? userProfileData.username : "";
+            settingsNewUsername.value = userProfileData.username !== "Log In" ? userProfileData.username : "";
             settingsMessage.classList.add('hide');
             settingsModal.classList.remove('opacity-0', 'pointer-events-none');
             settingsModalCard.classList.remove('scale-95');
@@ -954,7 +889,7 @@
                 userProfileData.username = newName;
                 profileNameDisplay.innerText = newName;
                 
-                if (!isOffline && db && currentUser && !currentUser.isAnonymous) {
+                if (!isOffline && db && currentUser) {
                     const profileRef = doc(db, 'artifacts', appId, 'users', currentUser.uid, 'profile', 'data');
                     await setDoc(profileRef, { username: newName, updatedAt: Date.now() }, { merge: true });
                     await syncUserRegistry();
@@ -1047,14 +982,22 @@
             authError.classList.add('hide');
             usernameInput.value = ""; passwordInput.value = ""; deletePasswordInput.value = "";
             deleteConfirmBox.classList.add('hide');
-            if(currentUser && !currentUser.isAnonymous) {
-                logoutBtn.classList.remove('hidden'); toggleDeleteBtn.classList.remove('hidden');
+            
+            if(currentUser) {
+                logoutBtn.classList.remove('hidden'); 
+                toggleDeleteBtn.classList.remove('hidden');
+                closeAuthBtn.classList.remove('hidden');
+            } else {
+                // If not logged in, enforce account creation/login by removing the close button
+                closeAuthBtn.classList.add('hidden');
             }
+            
             authModal.classList.remove('opacity-0', 'pointer-events-none');
             authModalCard.classList.remove('scale-95');
             authModalCard.classList.add('scale-100');
         }
         function closeAuthModal() {
+            if (!currentUser) return; // Prevent closing if not logged in
             authModal.classList.add('opacity-0', 'pointer-events-none');
             authModalCard.classList.remove('scale-100');
             authModalCard.classList.add('scale-95');
@@ -1062,7 +1005,6 @@
 
         authModalTrigger.addEventListener('click', openAuthModal);
         closeAuthBtn.addEventListener('click', closeAuthModal);
-        guestBtn.addEventListener('click', closeAuthModal);
 
         if (signupBtn && loginBtn) {
             signupBtn.addEventListener('click', async () => {
@@ -1097,7 +1039,7 @@
                         await setDoc(registryRef, { uid: userCredential.user.uid, username: username, email: directEmail, lastActive: Date.now(), stats: userStats });
                     }
                     
-                    closeAuthModal();
+                    // onAuthStateChanged will handle closing the modal
                 } catch (error) {
                     authError.innerText = error.code === 'auth/email-already-in-use' ? "Username already taken! If it's yours, try logging in." : error.message.replace('Firebase: ', '');
                     authError.classList.remove('hide');
@@ -1115,7 +1057,7 @@
                 try {
                     await signInWithEmailAndPassword(auth, getDirectEmail(username), password);
                     await loadUserProfile();
-                    closeAuthModal();
+                    // onAuthStateChanged will handle closing the modal
                 } catch (error) {
                     authError.innerText = "Incorrect username or password.";
                     authError.classList.remove('hide');
@@ -1127,9 +1069,8 @@
 
         logoutBtn.addEventListener('click', async () => {
             if (auth) {
-                await signOut(auth); await signInAnonymously(auth);
-                userProfileData.username = "Guest"; userStats = {}; profileNameDisplay.innerText = "Guest";
-                closeAuthModal(); loadStreaks(); updateStreakUI();
+                await signOut(auth);
+                // onAuthStateChanged will handle showing the modal again
             }
         });
 
@@ -1161,9 +1102,7 @@
                 }
                 
                 await deleteUser(currentUser);
-                await signInAnonymously(auth);
-                userProfileData.username = "Guest"; userStats = {}; profileNameDisplay.innerText = "Guest";
-                loadStreaks(); updateStreakUI(); closeAuthModal();
+                // onAuthStateChanged will handle showing the modal again
             } catch(error) {
                 authError.innerText = error.message.replace('Firebase: ', '');
                 authError.classList.remove('hide');
@@ -1174,10 +1113,9 @@
 
         function switchView(target) {
             currentView = target;
-            viewTest.classList.add('hide'); viewLeaderboard.classList.add('hide'); viewAdmin.classList.add('hide');
+            viewTest.classList.add('hide'); viewLeaderboard.classList.add('hide');
             navTestBtn.className = "px-3 py-1.5 rounded-md text-xs font-semibold text-[var(--sub-color)] hover:text-[var(--text-color)] transition-all flex items-center gap-1.5";
             navLeaderboardBtn.className = "px-3 py-1.5 rounded-md text-xs font-semibold text-[var(--sub-color)] hover:text-[var(--text-color)] transition-all flex items-center gap-1.5";
-            navAdminBtn.className = "px-3 py-1.5 rounded-md text-xs font-semibold text-[var(--sub-color)] hover:text-[var(--text-color)] transition-all flex items-center gap-1.5";
             configBar.classList.add('invisible');
 
             if (target === 'test') {
@@ -1196,32 +1134,23 @@
                     b.classList.toggle('text-[var(--sub-color)]', b.dataset.mode !== lbMode);
                 });
                 renderLbLengths(); fetchLeaderboard();
-            } else if (target === 'admin') {
-                viewAdmin.classList.remove('hide');
-                navAdminBtn.classList.add('text-[var(--main-color)]', 'bg-[var(--bg-color)]', 'shadow-sm');
-                navAdminBtn.classList.remove('text-[var(--sub-color)]', 'hover:text-[var(--text-color)]');
-                if (isAdminAuthed) fetchAdminData();
             }
         }
 
         navTestBtn.addEventListener('click', () => switchView('test'));
         navLeaderboardBtn.addEventListener('click', () => switchView('leaderboard'));
-        navAdminBtn.addEventListener('click', () => switchView('admin'));
         logoBtn.addEventListener('click', () => switchView('test'));
 
         function loadStreaks() {
             const key = `${mode}_${length}`;
-            currentStreak = 0; 
-            let localBest = parseInt(localStorage.getItem(`squad_best_${mode}_${length}`)) || 0;
-            if (currentUser && !currentUser.isAnonymous) {
+            currentStreak = 0; // Strictly resets current to 0 on mode change or login
+            
+            if (currentUser) {
+                // Strictly fetch best from the user stats (Defaults to 0)
                 bestStreak = (userStats[key] && userStats[key].bestStreak) ? userStats[key].bestStreak : 0;
-                if (localBest > bestStreak) {
-                    bestStreak = localBest;
-                    if (!userStats[key]) userStats[key] = { bestStreak: 0, bestWpm: 0 };
-                    userStats[key].bestStreak = localBest;
-                    updateAccountStats(mode, length, bestStreak, userStats[key].bestWpm);
-                }
-            } else { bestStreak = localBest; }
+            } else { 
+                bestStreak = 0; 
+            }
             updateStreakUI();
         }
 
@@ -1229,7 +1158,6 @@
             if (currentStreak > bestStreak) bestStreak = currentStreak;
             streakValue.innerText = currentStreak;
             bestStreakValue.innerText = bestStreak;
-            if (!currentUser || currentUser.isAnonymous) localStorage.setItem(`squad_best_${mode}_${length}`, bestStreak);
             
             if (currentStreak > 0) streakDisplay.classList.add('streak-active');
             else streakDisplay.classList.remove('streak-active');
@@ -1303,7 +1231,7 @@
         }
 
         typingTestDiv.addEventListener('keydown', (e) => {
-            if (currentView !== 'test') return;
+            if (currentView !== 'test' || !currentUser) return; // Prevent typing if not logged in
             if (!hasStarted && e.key.length === 1 && !e.metaKey && !e.ctrlKey) startTest();
             if (e.ctrlKey || e.metaKey || e.altKey || ["Tab", "Escape", "Enter", "Shift", "CapsLock", "Alt"].includes(e.key)) return;
 
@@ -1450,10 +1378,7 @@
         async function updateAccountStats(statMode, statLength, localBestStreak, wpm) {
             const key = `${statMode}_${statLength}`;
             
-            if (!currentUser || currentUser.isAnonymous) {
-                saveLocalScore(statMode, statLength, localBestStreak, wpm, userProfileData.username || "Guest");
-                return;
-            }
+            if (!currentUser) return; // Prevent saving if not logged in
 
             if (!userStats[key]) userStats[key] = { bestStreak: 0, bestWpm: 0 };
             if (localBestStreak > userStats[key].bestStreak) userStats[key].bestStreak = localBestStreak;
@@ -1472,26 +1397,13 @@
             }
         }
 
-        function saveLocalScore(lMode, lLength, scoreStreak, wpm, name) {
-            const localData = JSON.parse(localStorage.getItem('monkeytype_local_lb') || '{}');
-            const key = `${lMode}_${lLength}`;
-            if (!localData[key]) localData[key] = [];
-            
-            const existingIdx = localData[key].findIndex(i => i.username === name);
-            if (existingIdx >= 0) {
-                localData[key][existingIdx].streak = Math.max(localData[key][existingIdx].streak || 0, scoreStreak);
-                localData[key][existingIdx].wpm = Math.max(localData[key][existingIdx].wpm || 0, wpm);
-            } else localData[key].push({ username: name, streak: scoreStreak, wpm: wpm });
-            
-            localStorage.setItem('monkeytype_local_lb', JSON.stringify(localData));
-        }
-
         async function fetchLeaderboard() {
             lbCategoryTitle.innerText = `Top Streaks for ${lbMode} ${lbLength}`;
             if (isOffline || !db) {
-                lbStatus.innerText = "Local Mode";
-                lbStatus.className = "text-xs text-amber-500 font-mono bg-[var(--sub-alt-color)] px-3 py-1.5 rounded-lg border border-theme";
-                renderLocalLeaderboard(); return;
+                lbStatus.innerText = "Offline";
+                lbStatus.className = "text-xs text-red-500 font-mono bg-[var(--sub-alt-color)] px-3 py-1.5 rounded-lg border border-theme";
+                leaderboardList.innerHTML = `<div class="p-8 text-center text-[var(--sub-color)] text-sm">Cannot connect to leaderboard.</div>`;
+                return;
             }
             lbStatus.innerText = "Syncing...";
             lbStatus.className = "text-xs text-[var(--main-color)] font-mono bg-[var(--sub-alt-color)] px-3 py-1.5 rounded-lg border border-theme";
@@ -1543,107 +1455,8 @@
                 if (results.length === 0) leaderboardList.innerHTML = `<div class="p-8 text-center text-[var(--sub-color)] text-sm">No streaks recorded yet for this mode.</div>`;
                 else leaderboardList.innerHTML = html;
                 lbStatus.innerText = "Live Sync";
-            } catch(e) { renderLocalLeaderboard(); }
-        }
-
-        function renderLocalLeaderboard() {
-            const localData = JSON.parse(localStorage.getItem('monkeytype_local_lb') || '{}');
-            const items = localData[`${lbMode}_${lbLength}`] || [];
-            const filteredItems = items.filter(item => item.username && item.username.toLowerCase() !== 'testuser');
-            
-            filteredItems.sort((a, b) => {
-                if (b.streak !== a.streak) return b.streak - a.streak;
-                if ((b.wpm || 0) !== (a.wpm || 0)) return (b.wpm || 0) - (a.wpm || 0);
-                return (a.username || '').toLowerCase().localeCompare((b.username || '').toLowerCase());
-            });
-
-            if (filteredItems.length === 0) {
-                leaderboardList.innerHTML = `<div class="p-8 text-center text-[var(--sub-color)] text-sm">No streaks recorded yet for this mode.</div>`;
-                return;
-            }
-
-            let html = '';
-            filteredItems.slice(0, 50).forEach((item, idx) => {
-                const rank = idx + 1;
-                const isSelf = item.username === userProfileData.username;
-                html += `
-                    <div class="grid grid-cols-12 gap-2 px-6 py-3 text-xs items-center ${isSelf ? 'border-l-4 border-[var(--main-color)] bg-[var(--sub-alt-color)] text-[var(--main-color)] font-bold shadow-md' : 'text-[var(--text-color)] hover:bg-[var(--border-color)] transition-colors border-l-4 border-transparent'}">
-                        <div class="col-span-1 text-center font-mono ${rank <= 3 && item.streak > 0 ? 'text-[var(--main-color)] font-bold' : 'text-[var(--sub-color)]'}">
-                            ${rank === 1 && item.streak > 0 ? '<i class="fa-solid fa-crown text-amber-400"></i>' : `#${rank}`}
-                        </div>
-                        <div class="col-span-5 md:col-span-6 flex items-center gap-2 truncate">
-                            <i class="fa-solid fa-user-ninja text-[var(--sub-color)] text-sm"></i>
-                            <span class="truncate">${item.username}</span>
-                        </div>
-                        <div class="col-span-3 md:col-span-3 text-right font-bold font-mono text-[var(--main-color)]">
-                            ${item.streak} 🔥
-                        </div>
-                        <div class="col-span-3 md:col-span-2 text-right font-mono text-[var(--sub-color)]">
-                            ${item.wpm || 0} wpm
-                        </div>
-                    </div>
-                `;
-            });
-            leaderboardList.innerHTML = html;
-        }
-
-        adminLoginBtn.addEventListener('click', () => {
-            if (adminPasscodeInput.value === 'squadadmin') {
-                isAdminAuthed = true;
-                adminAuthError.classList.add('hide');
-                adminAuthOverlay.classList.add('hide');
-                adminContent.classList.remove('hide');
-                fetchAdminData();
-            } else {
-                adminAuthError.classList.remove('hide');
-            }
-        });
-
-        adminRefreshBtn.addEventListener('click', () => {
-            if (isAdminAuthed) fetchAdminData();
-        });
-
-        async function fetchAdminData() {
-            if (isOffline || !db) {
-                adminUserList.innerHTML = `<div class="p-8 text-center text-red-500 text-sm">Cannot access database in offline mode.</div>`;
-                return;
-            }
-            adminUserList.innerHTML = `<div class="p-8 text-center text-[var(--sub-color)] text-sm"><i class="fa-solid fa-circle-notch fa-spin mr-2"></i> Loading users...</div>`;
-            try {
-                const regRef = collection(db, 'artifacts', appId, 'public', 'data', 'userRegistry');
-                const querySnap = await getDocs(regRef);
-                
-                let users = [];
-                querySnap.forEach(docSnap => users.push({ id: docSnap.id, ...docSnap.data() }));
-                users.sort((a, b) => (b.lastActive || 0) - (a.lastActive || 0));
-
-                let html = '';
-                users.forEach(u => {
-                    const dateStr = u.lastActive ? new Date(u.lastActive).toLocaleDateString() : 'Unknown';
-                    const dataSize = u.stats ? Object.keys(u.stats).length : 0;
-                    
-                    html += `
-                        <div class="grid grid-cols-12 gap-2 px-6 py-4 text-xs items-center hover:bg-[var(--bg-color)] transition-colors">
-                            <div class="col-span-4 flex flex-col gap-1">
-                                <span class="font-bold text-[var(--text-color)]">${u.username || 'N/A'}</span>
-                                <span class="text-[var(--sub-color)] text-[10px] select-all">${u.email || u.uid}</span>
-                            </div>
-                            <div class="col-span-3 text-[var(--sub-color)]">${dateStr}</div>
-                            <div class="col-span-3 text-center text-[var(--main-color)] font-mono">${dataSize} modes</div>
-                            <div class="col-span-2 text-right">
-                                <button onclick="alert('User Email: ${u.email}\\n\\nTo reset password, please utilize the Firebase Console Auth section for this exact email.\\n\\nUID: ${u.uid}')" class="bg-[var(--sub-alt-color)] hover:bg-[var(--main-color)] hover:text-black text-[var(--sub-color)] px-2 py-1 rounded transition-colors" title="View details for password reset">
-                                    <i class="fa-solid fa-eye"></i> Info
-                                </button>
-                            </div>
-                        </div>
-                    `;
-                });
-                
-                if (users.length === 0) adminUserList.innerHTML = `<div class="p-8 text-center text-[var(--sub-color)] text-sm">No users registered yet.</div>`;
-                else adminUserList.innerHTML = html;
-
-            } catch(e) {
-                adminUserList.innerHTML = `<div class="p-8 text-center text-red-500 text-sm">Failed to load admin data.</div>`;
+            } catch(e) { 
+                leaderboardList.innerHTML = `<div class="p-8 text-center text-red-500 text-sm">Error loading scores.</div>`;
             }
         }
 
@@ -1704,7 +1517,7 @@
             focusOverlay.addEventListener('click', () => typingTestDiv.focus());
             
             document.addEventListener('keydown', (e) => {
-                if (currentView !== 'test') return;
+                if (currentView !== 'test' || !currentUser) return; // Prevent hotkeys if not logged in
                 if (document.activeElement && (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA')) return;
                 if (document.activeElement !== typingTestDiv && e.key.length === 1 && !e.ctrlKey && !e.metaKey) typingTestDiv.focus();
                 if (e.key === 'Tab') { e.preventDefault(); resetTest(); }
