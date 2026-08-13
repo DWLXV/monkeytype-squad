@@ -402,6 +402,7 @@
         </main>
     </div>
 
+    <!-- Auth Modal -->
     <div id="auth-modal" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4 opacity-0 pointer-events-none transition-opacity duration-300">
         <div class="bg-[var(--bg-color)] border border-theme w-full max-w-md rounded-2xl p-6 shadow-2xl relative transform scale-95 transition-transform duration-300" id="auth-modal-card">
             
@@ -488,6 +489,7 @@
         </div>
     </div>
 
+    <!-- Settings Modal -->
     <div id="settings-modal" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4 opacity-0 pointer-events-none transition-opacity duration-300">
         <div class="bg-[var(--bg-color)] border border-theme w-full max-w-md rounded-2xl p-6 shadow-2xl relative transform scale-95 transition-transform duration-300 max-h-[90vh] overflow-y-auto" id="settings-modal-card">
             <button id="close-settings-modal" class="absolute top-4 right-4 text-[var(--sub-color)] hover:text-[var(--text-color)] text-lg w-8 h-8 rounded-lg flex items-center justify-center transition-colors">
@@ -1063,6 +1065,7 @@
                 await reauthenticateWithCredential(currentUser, credential);
                 
                 if (!isOffline && db) {
+                    // Safe Account Deletion: Purge all leaderboard stats
                     for (const m of lbModesList) {
                         for (const l of lbLengthsList[m]) {
                             try { await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', `leaderboard_${m}_${l}`, currentUser.uid)); } catch(e) {}
@@ -1115,6 +1118,7 @@
             const key = `${mode}_${length}`;
             currentStreak = 0;
             
+            // Cloud-First "Best" Score mapping
             if (currentUser) {
                 bestStreak = (userStats[key] && userStats[key].bestStreak) ? userStats[key].bestStreak : 0;
             } else { 
@@ -1396,8 +1400,7 @@
                     return nameA.localeCompare(nameB);
                 });
 
-                // Deduplicate accounts with the same username (e.g. Eyob)
-                // Keeps only the best performing account for each unique username
+                // Deduplicate accounts with the same username
                 const seenUsernames = new Set();
                 const uniqueResults = [];
                 for (const item of results) {
