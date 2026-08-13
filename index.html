@@ -20,6 +20,11 @@
             --error-extra-color: #7e2a33;
             --border-color: #262626;
             --font-family: 'Roboto Mono', monospace;
+
+            /* Dynamic Font Sizes */
+            --test-font-size: 1.75rem;
+            --test-line-height: 48px;
+            --test-height: 144px;
         }
 
         body {
@@ -35,7 +40,6 @@
             transition: background-color 0.3s ease, color 0.3s ease;
         }
 
-        /* Streak & Animations */
         .streak-counter {
             color: var(--sub-color);
             font-weight: 700;
@@ -71,7 +75,6 @@
             animation: flashGreen 1s ease-out;
         }
 
-        /* UI Elements */
         .config-bar-container {
             display: flex;
             gap: 1rem;
@@ -101,14 +104,14 @@
             color: var(--main-color);
         }
 
-        /* Typing Area */
         #typing-test {
             position: relative;
-            font-size: 1.75rem;
-            line-height: 48px;
-            height: 144px;
+            font-size: var(--test-font-size);
+            line-height: var(--test-line-height);
+            height: var(--test-height);
             overflow: hidden;
             width: 100%;
+            transition: all 0.2s ease;
         }
 
         #words-container {
@@ -126,8 +129,9 @@
             display: inline-flex;
             color: var(--sub-color);
             border-bottom: 2px solid transparent;
-            height: 48px;
+            height: var(--test-line-height);
             align-items: center;
+            transition: height 0.2s ease;
         }
         
         .word.error-underline {
@@ -142,10 +146,10 @@
         #caret {
             position: absolute;
             width: 3px;
-            height: 2rem;
+            height: calc(var(--test-line-height) * 0.8);
             background-color: var(--caret-color);
             border-radius: 2px;
-            transition: left 0.1s ease, top 0.1s ease, background-color 0.3s;
+            transition: left 0.1s ease, top 0.1s ease, background-color 0.3s, height 0.2s;
             animation: blink 1s infinite;
             z-index: 10;
         }
@@ -160,7 +164,6 @@
             50% { opacity: 0; }
         }
 
-        /* Modals & Overlays */
         #focus-overlay {
             position: absolute;
             inset: 0;
@@ -201,16 +204,16 @@
         .theme-btn.active {
             border-color: var(--main-color);
         }
-        .color-btn {
-            width: 24px;
-            height: 24px;
-            border-radius: 50%;
-            cursor: pointer;
-            transition: transform 0.2s;
+        .color-btn, .font-btn {
             border: 2px solid transparent;
+            cursor: pointer;
+            transition: transform 0.2s, border-color 0.2s;
         }
+        .color-btn { width: 24px; height: 24px; border-radius: 50%; }
         .color-btn:hover { transform: scale(1.1); }
         .color-btn.active { border-color: var(--text-color); transform: scale(1.1); }
+        
+        .font-btn.active { border-color: var(--main-color); color: var(--main-color); }
 
         ::-webkit-scrollbar { width: 6px; }
         ::-webkit-scrollbar-track { background: var(--bg-color); }
@@ -223,7 +226,6 @@
 <body class="antialiased selection:bg-cyan-600/30">
 
     <div class="max-w-[1000px] mx-auto w-full px-6 py-6 flex flex-col min-h-screen">
-        
         <header class="flex justify-between items-center mb-8 w-full flex-wrap gap-4">
             <div class="flex items-center gap-6">
                 <div id="logo-btn" class="flex items-center gap-2 group cursor-pointer">
@@ -235,7 +237,6 @@
                     </div>
                 </div>
 
-                <!-- Navigation Tabs -->
                 <nav class="flex items-center gap-2 bg-[var(--sub-alt-color)] p-1 rounded-lg">
                     <button id="nav-test-btn" class="px-3 py-1.5 rounded-md text-xs font-semibold text-[var(--main-color)] bg-[var(--bg-color)] transition-all flex items-center gap-1.5 shadow-sm">
                         <i class="fa-solid fa-keyboard"></i> Test
@@ -243,10 +244,12 @@
                     <button id="nav-leaderboard-btn" class="px-3 py-1.5 rounded-md text-xs font-semibold text-[var(--sub-color)] hover:text-[var(--text-color)] transition-all flex items-center gap-1.5">
                         <i class="fa-solid fa-trophy"></i> Leaderboard
                     </button>
+                    <button id="nav-admin-btn" class="px-3 py-1.5 rounded-md text-xs font-semibold text-[var(--sub-color)] hover:text-[var(--text-color)] transition-all flex items-center gap-1.5 hidden">
+                        <i class="fa-solid fa-shield-halved"></i> Admin
+                    </button>
                 </nav>
             </div>
 
-            <!-- Header Controls & Account -->
             <div class="flex items-center gap-4 text-sm text-[var(--sub-color)]">
                 <div id="streak-display" class="streak-counter group relative cursor-help">
                     <i class="fa-solid fa-fire text-lg"></i>
@@ -263,12 +266,10 @@
                     </div>
                 </div>
 
-                <!-- Settings Trigger Button -->
                 <button id="settings-modal-trigger" class="flex items-center justify-center w-8 h-8 rounded-lg bg-[var(--sub-alt-color)] text-[var(--sub-color)] hover:text-[var(--text-color)] transition-colors shadow-sm">
                     <i class="fa-solid fa-gear"></i>
                 </button>
 
-                <!-- Profile / Auth trigger button -->
                 <button id="auth-modal-trigger" class="flex items-center gap-2 bg-[var(--sub-alt-color)] hover:brightness-110 text-[var(--text-color)] px-3 py-1.5 rounded-lg text-xs font-semibold transition-all shadow-sm">
                     <i class="fa-solid fa-user-astronaut text-[var(--main-color)] transition-colors"></i>
                     <span id="profile-name-display">Guest</span>
@@ -281,7 +282,6 @@
                 <span class="config-item active" data-mode="time"><i class="fa-solid fa-clock mr-1"></i> time</span>
                 <span class="config-item" data-mode="words"><i class="fa-solid fa-font mr-1"></i> words</span>
             </div>
-
             <div class="config-group" id="config-lengths">
                 <span class="config-item" data-val="15">15</span>
                 <span class="config-item active" data-val="30">30</span>
@@ -292,6 +292,7 @@
 
         <main class="flex-grow flex flex-col relative w-full pt-2">
             
+            <!-- View: Test -->
             <div id="view-test" class="w-full flex flex-col">
                 <div class="flex justify-center text-[var(--sub-color)] mb-4 text-xs transition-opacity duration-300" id="language-indicator">
                     <span class="cursor-pointer hover:text-[var(--text-color)] transition-colors"><i class="fa-solid fa-globe mr-1.5"></i>english</span>
@@ -310,9 +311,7 @@
 
                     <div id="typing-test" tabindex="0" class="outline-none">
                         <div id="caret"></div>
-                        <div id="words-container">
-                            <!-- Words injected dynamically -->
-                        </div>
+                        <div id="words-container"></div>
                     </div>
                 </div>
 
@@ -374,9 +373,8 @@
                         <h2 class="text-2xl font-bold text-[var(--text-color)] flex items-center gap-2">
                             <i class="fa-solid fa-trophy text-[var(--main-color)] transition-colors"></i> Squad Leaderboard
                         </h2>
-                        <p class="text-[var(--sub-color)] text-xs mt-1" id="lb-category-title">Top 100% Streaks for Time 30</p>
+                        <p class="text-[var(--sub-color)] text-xs mt-1" id="lb-category-title">Top Streaks for Time 30</p>
                     </div>
-                    
                     <div id="lb-status" class="text-xs text-[var(--sub-color)] font-mono bg-[var(--sub-alt-color)] px-3 py-1.5 rounded-lg border border-theme">
                         Live Sync
                     </div>
@@ -387,9 +385,7 @@
                         <button class="lb-mode-btn active px-3 py-1 rounded-md transition-all font-semibold text-[var(--main-color)] bg-[var(--sub-alt-color)]" data-mode="time">time</button>
                         <button class="lb-mode-btn px-3 py-1 rounded-md transition-all font-semibold text-[var(--sub-color)] hover:text-[var(--text-color)]" data-mode="words">words</button>
                     </div>
-                    <div class="flex items-center gap-1.5 overflow-x-auto py-0.5" id="lb-length-tabs">
-                        <!-- Dynamically populated length chips -->
-                    </div>
+                    <div class="flex items-center gap-1.5 overflow-x-auto py-0.5" id="lb-length-tabs"></div>
                 </div>
 
                 <div class="bg-[var(--sub-alt-color)] rounded-2xl border border-theme overflow-hidden shadow-xl">
@@ -407,10 +403,46 @@
                     </div>
                 </div>
             </div>
+
+            <div id="view-admin" class="hide w-full flex flex-col">
+                <div class="flex justify-between items-end mb-6">
+                    <div>
+                        <h2 class="text-2xl font-bold text-[var(--text-color)] flex items-center gap-2">
+                            <i class="fa-solid fa-shield-halved text-[var(--error-color)]"></i> Admin Dashboard
+                        </h2>
+                        <p class="text-[var(--sub-color)] text-xs mt-1">Manage user accounts and view activities</p>
+                    </div>
+                    <button id="admin-refresh-btn" class="bg-[var(--sub-alt-color)] hover:bg-[var(--border-color)] text-[var(--text-color)] px-4 py-2 rounded-lg text-xs font-semibold border border-theme transition-colors">
+                        <i class="fa-solid fa-rotate"></i> Refresh
+                    </button>
+                </div>
+
+                <div id="admin-auth-overlay" class="bg-[var(--sub-alt-color)] rounded-2xl border border-theme p-8 text-center shadow-xl">
+                    <i class="fa-solid fa-lock text-4xl text-[var(--sub-color)] mb-4"></i>
+                    <h3 class="text-lg font-bold text-[var(--text-color)] mb-2">Admin Access Required</h3>
+                    <p class="text-xs text-[var(--sub-color)] mb-4">Please enter the admin passcode to view user data.</p>
+                    <div class="flex justify-center max-w-xs mx-auto gap-2">
+                        <input type="password" id="admin-passcode-input" class="w-full bg-[var(--bg-color)] text-[var(--text-color)] px-4 py-2 rounded-lg outline-none focus:ring-1 focus:ring-[var(--main-color)] text-sm border border-theme" placeholder="Passcode">
+                        <button id="admin-login-btn" class="bg-[var(--main-color)] text-black font-bold px-4 py-2 rounded-lg text-sm hover:opacity-90 transition-all">Login</button>
+                    </div>
+                    <p id="admin-auth-error" class="text-red-500 text-xs mt-2 hide">Incorrect passcode</p>
+                </div>
+
+                <div id="admin-content" class="hide bg-[var(--sub-alt-color)] rounded-2xl border border-theme overflow-hidden shadow-xl">
+                    <div class="grid grid-cols-12 gap-2 px-6 py-3 bg-[var(--bg-color)] opacity-90 text-[var(--sub-color)] text-xs font-bold uppercase tracking-wider border-b border-theme">
+                        <div class="col-span-4">User / Email</div>
+                        <div class="col-span-3">Last Active</div>
+                        <div class="col-span-3 text-center">Data Size</div>
+                        <div class="col-span-2 text-right">Actions</div>
+                    </div>
+                    <div id="admin-user-list" class="divide-y divide-[var(--border-color)] max-h-[500px] overflow-y-auto">
+                        <!-- Populated by JS -->
+                    </div>
+                </div>
+            </div>
         </main>
     </div>
 
-    <!-- AUTH MODAL -->
     <div id="auth-modal" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4 opacity-0 pointer-events-none transition-opacity duration-300">
         <div class="bg-[var(--bg-color)] border border-theme w-full max-w-md rounded-2xl p-6 shadow-2xl relative transform scale-95 transition-transform duration-300" id="auth-modal-card">
             <button id="close-auth-modal" class="absolute top-4 right-4 text-[var(--sub-color)] hover:text-[var(--text-color)] text-lg w-8 h-8 rounded-lg flex items-center justify-center transition-colors">
@@ -427,29 +459,21 @@
             
             <div class="flex flex-col gap-4">
                 <div class="flex flex-col gap-3" id="auth-forms-container">
-                    
                     <div id="auth-inputs-section" class="flex flex-col gap-3">
                         <div>
                             <label class="block text-[var(--sub-color)] text-[10px] uppercase font-bold tracking-wider mb-1.5">Username</label>
                             <input type="text" id="username-input" class="w-full bg-[var(--sub-alt-color)] text-[var(--text-color)] px-4 py-2.5 rounded-lg outline-none focus:ring-2 focus:ring-[var(--main-color)] font-mono text-sm transition-all border border-theme placeholder:text-[var(--sub-color)]" placeholder="e.g. TypeMaster99" maxlength="15" autocomplete="off">
                         </div>
-                        
                         <div>
                             <label class="block text-[var(--sub-color)] text-[10px] uppercase font-bold tracking-wider mb-1.5">Password</label>
                             <input type="password" id="password-input" class="w-full bg-[var(--sub-alt-color)] text-[var(--text-color)] px-4 py-2.5 rounded-lg outline-none focus:ring-2 focus:ring-[var(--main-color)] text-sm transition-all border border-theme placeholder:text-[var(--sub-color)]" placeholder="••••••••">
                         </div>
-
                         <div class="flex gap-2 mt-2">
-                            <button id="login-btn" class="w-1/2 bg-[var(--sub-alt-color)] hover:brightness-110 text-[var(--text-color)] font-bold py-2.5 rounded-lg transition-all text-sm border border-theme flex justify-center items-center shadow-sm">
-                                Login
-                            </button>
-                            <button id="signup-btn" class="w-1/2 bg-[var(--main-color)] text-black font-bold py-2.5 rounded-lg hover:opacity-90 transition-all text-sm shadow-md flex justify-center items-center">
-                                Create Account
-                            </button>
+                            <button id="login-btn" class="w-1/2 bg-[var(--sub-alt-color)] hover:brightness-110 text-[var(--text-color)] font-bold py-2.5 rounded-lg transition-all text-sm border border-theme flex justify-center items-center shadow-sm">Login</button>
+                            <button id="signup-btn" class="w-1/2 bg-[var(--main-color)] text-black font-bold py-2.5 rounded-lg hover:opacity-90 transition-all text-sm shadow-md flex justify-center items-center">Create Account</button>
                         </div>
                     </div>
 
-                    <!-- Only shown when logged in -->
                     <div id="logged-in-section" class="flex flex-col gap-2.5 hidden">
                         <button id="logout-btn" class="w-full bg-[var(--sub-alt-color)] hover:brightness-110 text-[var(--text-color)] font-bold py-2.5 rounded-lg transition-all text-sm flex justify-center items-center gap-2 border border-theme">
                             <i class="fa-solid fa-right-from-bracket"></i> Sign Out
@@ -458,7 +482,6 @@
                             <i class="fa-solid fa-trash-can"></i> Delete Account
                         </button>
                         
-                        <!-- Delete Confirmation Box -->
                         <div id="delete-confirm-box" class="hide flex flex-col gap-2.5 p-3 mt-1 bg-red-900/10 border border-red-900/30 rounded-xl">
                             <p class="text-xs text-red-500 font-medium leading-relaxed">
                                 <i class="fa-solid fa-triangle-exclamation mr-1"></i> Warning: This will permanently delete your account and all saved scores from the leaderboard.
@@ -468,12 +491,8 @@
                                 <input type="password" id="delete-password-input" class="w-full bg-[var(--sub-alt-color)] text-[var(--text-color)] px-3 py-2 rounded-lg outline-none focus:ring-1 focus:ring-red-500 text-xs border border-theme" placeholder="Enter password to confirm">
                             </div>
                             <div class="flex gap-2 mt-1">
-                                <button id="cancel-delete-btn" class="w-1/2 bg-[var(--sub-alt-color)] text-[var(--sub-color)] hover:text-[var(--text-color)] py-1.5 rounded-lg text-xs font-semibold border border-theme">
-                                    Cancel
-                                </button>
-                                <button id="confirm-delete-btn" class="w-1/2 bg-red-600 hover:bg-red-500 text-white font-bold py-1.5 rounded-lg text-xs transition-all flex justify-center items-center shadow-md">
-                                    Confirm Delete
-                                </button>
+                                <button id="cancel-delete-btn" class="w-1/2 bg-[var(--sub-alt-color)] text-[var(--sub-color)] hover:text-[var(--text-color)] py-1.5 rounded-lg text-xs font-semibold border border-theme">Cancel</button>
+                                <button id="confirm-delete-btn" class="w-1/2 bg-red-600 hover:bg-red-500 text-white font-bold py-1.5 rounded-lg text-xs transition-all flex justify-center items-center shadow-md">Confirm Delete</button>
                             </div>
                         </div>
                     </div>
@@ -488,15 +507,13 @@
                         Continue as Guest (No Cloud Save)
                     </button>
                 </div>
-
                 <div id="auth-error" class="text-[var(--error-color)] text-xs text-center hide font-medium mt-1 bg-red-900/20 py-2 rounded-lg border border-red-900/30"></div>
             </div>
         </div>
     </div>
 
-    <!-- SETTINGS MODAL -->
     <div id="settings-modal" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4 opacity-0 pointer-events-none transition-opacity duration-300">
-        <div class="bg-[var(--bg-color)] border border-theme w-full max-w-md rounded-2xl p-6 shadow-2xl relative transform scale-95 transition-transform duration-300" id="settings-modal-card">
+        <div class="bg-[var(--bg-color)] border border-theme w-full max-w-md rounded-2xl p-6 shadow-2xl relative transform scale-95 transition-transform duration-300 max-h-[90vh] overflow-y-auto" id="settings-modal-card">
             <button id="close-settings-modal" class="absolute top-4 right-4 text-[var(--sub-color)] hover:text-[var(--text-color)] text-lg w-8 h-8 rounded-lg flex items-center justify-center transition-colors">
                 <i class="fa-solid fa-xmark"></i>
             </button>
@@ -524,12 +541,29 @@
                     </div>
                 </div>
 
-                <!-- Account Settings (Only if logged in) -->
-                <div id="settings-account-section" class="hide flex flex-col gap-4 border-t border-theme pt-4">
-                    <h3 class="text-xs text-[var(--sub-color)] uppercase font-bold tracking-wider mb-1">Account Management</h3>
+                <!-- Font Size Settings -->
+                <div>
+                    <h3 class="text-xs text-[var(--sub-color)] uppercase font-bold tracking-wider mb-3">Font Size (Zoom)</h3>
+                    <div class="flex gap-2 bg-[var(--sub-alt-color)] p-2 rounded-lg border border-theme">
+                        <button class="font-btn flex-1 py-1.5 rounded-md text-sm text-[var(--sub-color)] bg-[var(--bg-color)] hover:text-[var(--text-color)]" data-size="2">2 (Small)</button>
+                        <button class="font-btn flex-1 py-1.5 rounded-md text-sm text-[var(--sub-color)] bg-[var(--bg-color)] hover:text-[var(--text-color)] active" data-size="3">3 (Normal)</button>
+                        <button class="font-btn flex-1 py-1.5 rounded-md text-sm text-[var(--sub-color)] bg-[var(--bg-color)] hover:text-[var(--text-color)]" data-size="4">4 (Large)</button>
+                    </div>
+                </div>
+
+                <!-- Account Settings -->
+                <div id="settings-account-section" class="hide flex flex-col gap-6 border-t border-theme pt-4">
                     
                     <div>
-                        <label class="block text-[var(--sub-color)] text-[10px] uppercase font-bold tracking-wider mb-1.5">Change Password</label>
+                        <h3 class="text-xs text-[var(--sub-color)] uppercase font-bold tracking-wider mb-2">Change Username</h3>
+                        <div class="flex flex-col gap-2">
+                            <input type="text" id="settings-new-username" class="w-full bg-[var(--sub-alt-color)] text-[var(--text-color)] px-3 py-2 rounded-lg outline-none focus:ring-1 focus:ring-[var(--main-color)] text-sm border border-theme placeholder:text-[var(--sub-color)] font-mono" placeholder="New Username" maxlength="15">
+                            <button id="btn-save-username" class="w-full bg-[var(--sub-alt-color)] hover:brightness-110 text-[var(--text-color)] font-bold px-4 py-2 rounded-lg transition-all text-sm border border-theme">Update Username</button>
+                        </div>
+                    </div>
+
+                    <div>
+                        <h3 class="text-xs text-[var(--sub-color)] uppercase font-bold tracking-wider mb-2">Change Password</h3>
                         <div class="flex flex-col gap-2">
                             <input type="password" id="settings-current-password" class="w-full bg-[var(--sub-alt-color)] text-[var(--text-color)] px-3 py-2 rounded-lg outline-none focus:ring-1 focus:ring-[var(--main-color)] text-sm border border-theme placeholder:text-[var(--sub-color)]" placeholder="Current Password">
                             <input type="password" id="settings-new-password" class="w-full bg-[var(--sub-alt-color)] text-[var(--text-color)] px-3 py-2 rounded-lg outline-none focus:ring-1 focus:ring-[var(--main-color)] text-sm border border-theme placeholder:text-[var(--sub-color)]" placeholder="New Password (min 6 chars)">
@@ -549,7 +583,7 @@
         import { getAuth, signInAnonymously, onAuthStateChanged, signOut, createUserWithEmailAndPassword, signInWithEmailAndPassword, reauthenticateWithCredential, updatePassword, EmailAuthProvider, deleteUser, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, doc, getDoc, setDoc, deleteDoc, collection, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'monkeytype-squad-streak-v2';
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'monkeytype-squad-streak-v3';
         
         const myFirebaseConfig = {
             apiKey: "AIzaSyAjYIUxT2IdfapDmx30Cofu7tEpci_LF8I",
@@ -571,6 +605,7 @@
         let userStats = {}; 
         let currentView = 'test';
         let isOffline = false;
+        let isAdminAuthed = false;
 
         try {
             if (!firebaseConfig.apiKey) throw new Error("No Firebase Config supplied");
@@ -584,6 +619,9 @@
         const wordList = [
             "the","be","of","and","a","to","in","he","have","it","that","for","they","I","with","as","not","on","she","at","by","this","we","you","do","but","from","or","which","one","would","all","will","there","say","who","make","when","can","more","if","no","man","out","other","so","what","time","up","go","about","than","into","could","state","only","new","year","some","take","come","these","know","see","use","get","like","then","first","any","work","now","may","such","give","over","think","most","even","find","day","also","after","way","many","must","look","before","great","back","through","long","where","much","should","well","people","down","own","just","because","good","each","those","feel","seem","how","high","too","place","little","world","very","still","nation","hand","old","life","tell","write","become","here","show","house","both","between","need","mean","call","develop","under","last","right","move","thing","general","school","never","same","another","begin","while","number","part","turn","real","leave","might","want","point","form","off","child","few","small","since","against","ask","late","home","interest","large","person","end","open","public","follow","during","present","without","again","hold","govern","around","possible","head","consider","word","program","problem","however","lead","system","set","order","eye","plan","run","keep","face","fact","group","play","stand","increase","early","course","change","help","line"
         ];
+        
+        const lbModesList = ['time', 'words'];
+        const lbLengthsList = { time: [15, 30, 60, 120], words: [10, 25, 50, 100] };
 
         /* Game State */
         let mode = 'time'; 
@@ -609,7 +647,7 @@
         let bestStreak = 0;
         let isPerfectTest = true;
 
-        /* DOM Map */
+        /* DOM Elements */
         const typingTestDiv = document.getElementById('typing-test');
         const wordsContainer = document.getElementById('words-container');
         const caret = document.getElementById('caret');
@@ -629,11 +667,13 @@
 
         const navTestBtn = document.getElementById('nav-test-btn');
         const navLeaderboardBtn = document.getElementById('nav-leaderboard-btn');
+        const navAdminBtn = document.getElementById('nav-admin-btn');
         const viewTest = document.getElementById('view-test');
         const viewLeaderboard = document.getElementById('view-leaderboard');
+        const viewAdmin = document.getElementById('view-admin');
         const logoBtn = document.getElementById('logo-btn');
 
-        /* Auth Elements */
+        /* Auth & Settings */
         const authModal = document.getElementById('auth-modal');
         const authModalCard = document.getElementById('auth-modal-card');
         const authModalTrigger = document.getElementById('auth-modal-trigger');
@@ -655,12 +695,15 @@
         const profileNameDisplay = document.getElementById('profile-name-display');
         const authError = document.getElementById('auth-error');
         
-        /* Settings Elements */
         const settingsModal = document.getElementById('settings-modal');
         const settingsModalCard = document.getElementById('settings-modal-card');
         const settingsModalTrigger = document.getElementById('settings-modal-trigger');
         const closeSettingsBtn = document.getElementById('close-settings-modal');
         const settingsAccountSection = document.getElementById('settings-account-section');
+        
+        const settingsNewUsername = document.getElementById('settings-new-username');
+        const btnSaveUsername = document.getElementById('btn-save-username');
+        
         const settingsCurrentPassword = document.getElementById('settings-current-password');
         const settingsNewPassword = document.getElementById('settings-new-password');
         const settingsConfirmPassword = document.getElementById('settings-confirm-password');
@@ -672,15 +715,24 @@
         const leaderboardList = document.getElementById('leaderboard-list');
         const lbLengthTabs = document.getElementById('lb-length-tabs');
         const lbModeBtns = document.querySelectorAll('.lb-mode-btn');
+        
         const themeBtns = document.querySelectorAll('.theme-btn');
         const colorBtns = document.querySelectorAll('.color-btn');
+        const fontBtns = document.querySelectorAll('.font-btn');
 
-        // Generates strict unique email from username so username forms direct auth logins
+        /* Admin UI */
+        const adminAuthOverlay = document.getElementById('admin-auth-overlay');
+        const adminContent = document.getElementById('admin-content');
+        const adminPasscodeInput = document.getElementById('admin-passcode-input');
+        const adminLoginBtn = document.getElementById('admin-login-btn');
+        const adminAuthError = document.getElementById('admin-auth-error');
+        const adminUserList = document.getElementById('admin-user-list');
+        const adminRefreshBtn = document.getElementById('admin-refresh-btn');
+
         const getDirectEmail = (username) => {
             const clean = username.toLowerCase().replace(/[^a-z0-9]/g, '');
             return `user_${clean}@squadtyping.app`;
         };
-        const getDocId = (username) => username.toLowerCase().replace(/[^a-z0-9]/g, '') || 'anonymous';
 
         function applyTheme(themeMode, colorHex) {
             const root = document.documentElement;
@@ -700,38 +752,44 @@
             root.style.setProperty('--main-color', colorHex);
             root.style.setProperty('--caret-color', colorHex);
 
-            themeBtns.forEach(btn => {
-                if (btn.dataset.theme === themeMode) btn.classList.add('border-[var(--main-color)]');
-                else btn.classList.remove('border-[var(--main-color)]');
-            });
-            colorBtns.forEach(btn => {
-                if (btn.dataset.color === colorHex) btn.classList.add('active');
-                else btn.classList.remove('active');
-            });
+            themeBtns.forEach(btn => btn.classList.toggle('border-[var(--main-color)]', btn.dataset.theme === themeMode));
+            colorBtns.forEach(btn => btn.classList.toggle('active', btn.dataset.color === colorHex));
             
             localStorage.setItem('monkeytype_theme', themeMode);
             localStorage.setItem('monkeytype_color', colorHex);
         }
 
+        function applyFontSize(sizeStr) {
+            const root = document.documentElement;
+            if(sizeStr === '2') {
+                root.style.setProperty('--test-font-size', '1.25rem');
+                root.style.setProperty('--test-line-height', '36px');
+                root.style.setProperty('--test-height', '108px');
+            } else if(sizeStr === '4') {
+                root.style.setProperty('--test-font-size', '2.25rem');
+                root.style.setProperty('--test-line-height', '60px');
+                root.style.setProperty('--test-height', '180px');
+            } else {
+                root.style.setProperty('--test-font-size', '1.75rem');
+                root.style.setProperty('--test-line-height', '48px');
+                root.style.setProperty('--test-height', '144px');
+            }
+            fontBtns.forEach(btn => btn.classList.toggle('active', btn.dataset.size === sizeStr));
+            localStorage.setItem('monkeytype_font_size', sizeStr);
+            if(wordsContainer.children.length > 0) updateCaretPosition();
+        }
+
         function loadPreferences() {
             const savedTheme = localStorage.getItem('monkeytype_theme') || 'dark';
             const savedColor = localStorage.getItem('monkeytype_color') || '#13C9C9';
+            const savedFont = localStorage.getItem('monkeytype_font_size') || '3';
             applyTheme(savedTheme, savedColor);
+            applyFontSize(savedFont);
         }
 
-        themeBtns.forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                const color = localStorage.getItem('monkeytype_color') || '#13C9C9';
-                applyTheme(e.target.dataset.theme, color);
-            });
-        });
-
-        colorBtns.forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                const theme = localStorage.getItem('monkeytype_theme') || 'dark';
-                applyTheme(theme, e.target.dataset.color);
-            });
-        });
+        themeBtns.forEach(btn => btn.addEventListener('click', (e) => applyTheme(e.target.dataset.theme, localStorage.getItem('monkeytype_color') || '#13C9C9')));
+        colorBtns.forEach(btn => btn.addEventListener('click', (e) => applyTheme(localStorage.getItem('monkeytype_theme') || 'dark', e.target.dataset.color)));
+        fontBtns.forEach(btn => btn.addEventListener('click', (e) => applyFontSize(e.target.dataset.size)));
 
         if (auth) {
             onAuthStateChanged(auth, async (user) => {
@@ -749,6 +807,9 @@
                         logoutBtn.classList.remove('hidden');
                         toggleDeleteBtn.classList.remove('hidden');
                         settingsAccountSection.classList.remove('hide');
+                        navAdminBtn.classList.remove('hidden');
+                        
+                        await syncUserRegistry(); 
                     } else {
                         authInputsSection.classList.remove('hidden');
                         guestDivider.classList.remove('hidden');
@@ -756,6 +817,7 @@
                         loggedInSection.classList.add('hidden');
                         loggedInSection.classList.remove('flex');
                         settingsAccountSection.classList.add('hide');
+                        navAdminBtn.classList.add('hidden');
                     }
 
                     loadStreaks();
@@ -765,13 +827,7 @@
                     userProfileData = { username: "Guest" };
                     userStats = {};
                     profileNameDisplay.innerText = "Guest";
-                    
-                    authInputsSection.classList.remove('hidden');
-                    guestDivider.classList.remove('hidden');
-                    guestBtn.classList.remove('hidden');
-                    loggedInSection.classList.add('hidden');
-                    loggedInSection.classList.remove('flex');
-                    settingsAccountSection.classList.add('hide');
+                    navAdminBtn.classList.add('hidden');
                     loadStreaks();
                 }
             });
@@ -785,18 +841,13 @@
             try {
                 if (!auth.currentUser) {
                     if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                        try {
-                            await signInWithCustomToken(auth, __initial_auth_token);
-                        } catch(tokenErr) {
-                            await signInAnonymously(auth);
-                        }
+                        try { await signInWithCustomToken(auth, __initial_auth_token); } 
+                        catch(tokenErr) { await signInAnonymously(auth); }
                     } else {
                         await signInAnonymously(auth);
                     }
                 }
-            } catch(e) {
-                isOffline = true;
-            }
+            } catch(e) { isOffline = true; }
         }
 
         async function loadUserProfile() {
@@ -806,50 +857,38 @@
                 const snap = await getDoc(profileRef);
                 if (snap.exists()) {
                     const data = snap.data();
-                    if (data.username) {
-                        userProfileData.username = data.username;
-                    }
-                    if (data.stats) {
-                        userStats = data.stats;
-                    }
-                } else {
-                    userStats = {};
+                    if (data.username) userProfileData.username = data.username;
+                    if (data.stats) userStats = data.stats;
                 }
             } catch(e) {}
             profileNameDisplay.innerText = userProfileData.username || "Guest";
         }
 
-        async function saveUserProfile(name) {
-            userProfileData.username = name;
-            profileNameDisplay.innerText = name;
-
-            if (isOffline || !currentUser || !db) return true;
+        async function syncUserRegistry() {
+            if (isOffline || !currentUser || currentUser.isAnonymous || !db) return;
             try {
-                const profileRef = doc(db, 'artifacts', appId, 'users', currentUser.uid, 'profile', 'data');
-                await setDoc(profileRef, { username: name, updatedAt: Date.now() }, { merge: true });
-                return true;
-            } catch(e) {
-                return false;
-            }
+                const registryRef = doc(db, 'artifacts', appId, 'public', 'data', 'userRegistry', currentUser.uid);
+                await setDoc(registryRef, {
+                    uid: currentUser.uid,
+                    username: userProfileData.username,
+                    email: currentUser.email,
+                    lastActive: Date.now(),
+                    stats: userStats
+                }, { merge: true });
+            } catch(e) {}
         }
 
         function showSettingsMsg(msg, isError = false) {
             settingsMessage.innerText = msg;
             settingsMessage.classList.remove('hide');
-            if(isError) {
-                settingsMessage.className = "text-xs text-center font-medium py-2 rounded-lg border text-red-500 bg-red-900/10 border-red-900/30 mt-4";
-            } else {
-                settingsMessage.className = "text-xs text-center font-medium py-2 rounded-lg border text-green-500 bg-green-900/10 border-green-900/30 mt-4";
-            }
+            settingsMessage.className = `text-xs text-center font-medium py-2 rounded-lg border mt-4 ${isError ? 'text-red-500 bg-red-900/10 border-red-900/30' : 'text-green-500 bg-green-900/10 border-green-900/30'}`;
             setTimeout(() => settingsMessage.classList.add('hide'), 4000);
         }
 
         settingsModalTrigger.addEventListener('click', () => {
-            settingsCurrentPassword.value = "";
-            settingsNewPassword.value = "";
-            settingsConfirmPassword.value = "";
+            settingsCurrentPassword.value = ""; settingsNewPassword.value = ""; settingsConfirmPassword.value = "";
+            settingsNewUsername.value = userProfileData.username !== "Guest" ? userProfileData.username : "";
             settingsMessage.classList.add('hide');
-
             settingsModal.classList.remove('opacity-0', 'pointer-events-none');
             settingsModalCard.classList.remove('scale-95');
             settingsModalCard.classList.add('scale-100');
@@ -859,6 +898,40 @@
             settingsModal.classList.add('opacity-0', 'pointer-events-none');
             settingsModalCard.classList.remove('scale-100');
             settingsModalCard.classList.add('scale-95');
+        });
+
+        btnSaveUsername.addEventListener('click', async () => {
+            const newName = settingsNewUsername.value.trim();
+            if (!newName || newName.length < 3) return showSettingsMsg("Username must be at least 3 characters", true);
+            if (newName === userProfileData.username) return showSettingsMsg("Username is unchanged", true);
+            
+            btnSaveUsername.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
+            try {
+                userProfileData.username = newName;
+                profileNameDisplay.innerText = newName;
+                
+                if (!isOffline && db && currentUser && !currentUser.isAnonymous) {
+                    const profileRef = doc(db, 'artifacts', appId, 'users', currentUser.uid, 'profile', 'data');
+                    await setDoc(profileRef, { username: newName, updatedAt: Date.now() }, { merge: true });
+                    await syncUserRegistry();
+
+                    // Update all leaderboard docs safely via uid
+                    for (const m of lbModesList) {
+                        for (const l of lbLengthsList[m]) {
+                            try {
+                                const ref = doc(db, 'artifacts', appId, 'public', 'data', `leaderboard_${m}_${l}`, currentUser.uid);
+                                await setDoc(ref, { username: newName }, { merge: true });
+                            } catch(e) {}
+                        }
+                    }
+                }
+                showSettingsMsg("Username updated successfully!");
+                if (currentView === 'leaderboard') fetchLeaderboard();
+            } catch(e) {
+                showSettingsMsg("Failed to update username.", true);
+            } finally {
+                btnSaveUsername.innerText = "Update Username";
+            }
         });
 
         btnSavePassword.addEventListener('click', async () => {
@@ -876,14 +949,10 @@
                 await reauthenticateWithCredential(currentUser, credential);
                 await updatePassword(currentUser, newPass);
                 showSettingsMsg("Password updated successfully!");
-                settingsCurrentPassword.value = "";
-                settingsNewPassword.value = "";
-                settingsConfirmPassword.value = "";
+                settingsCurrentPassword.value = ""; settingsNewPassword.value = ""; settingsConfirmPassword.value = "";
             } catch(e) {
                 let errorMsg = e.message.replace('Firebase: ', '');
-                if (e.code === 'auth/invalid-login-credentials' || e.code === 'auth/wrong-password' || e.code === 'auth/invalid-credential') {
-                    errorMsg = "Incorrect current password.";
-                }
+                if (e.code === 'auth/invalid-login-credentials' || e.code === 'auth/wrong-password') errorMsg = "Incorrect current password.";
                 showSettingsMsg(errorMsg, true);
             } finally {
                 btnSavePassword.innerText = "Change Password";
@@ -892,19 +961,15 @@
 
         function openAuthModal() {
             authError.classList.add('hide');
-            usernameInput.value = "";
-            passwordInput.value = "";
-            deletePasswordInput.value = "";
-            
+            usernameInput.value = ""; passwordInput.value = ""; deletePasswordInput.value = "";
             deleteConfirmBox.classList.add('hide');
-            logoutBtn.classList.remove('hidden');
-            toggleDeleteBtn.classList.remove('hidden');
-            
+            if(currentUser && !currentUser.isAnonymous) {
+                logoutBtn.classList.remove('hidden'); toggleDeleteBtn.classList.remove('hidden');
+            }
             authModal.classList.remove('opacity-0', 'pointer-events-none');
             authModalCard.classList.remove('scale-95');
             authModalCard.classList.add('scale-100');
         }
-
         function closeAuthModal() {
             authModal.classList.add('opacity-0', 'pointer-events-none');
             authModalCard.classList.remove('scale-100');
@@ -919,30 +984,37 @@
             signupBtn.addEventListener('click', async () => {
                 const username = usernameInput.value.trim();
                 const password = passwordInput.value;
-                
-                if (username.length < 3) {
-                    authError.innerText = "Username must be at least 3 characters.";
-                    authError.classList.remove('hide');
-                    return;
-                }
-                if (password.length < 6) {
-                    authError.innerText = "Password must be at least 6 characters.";
-                    authError.classList.remove('hide');
-                    return;
-                }
-                
-                if (isOffline) {
-                    saveUserProfile(username);
-                    closeAuthModal();
-                    return;
-                }
+                if (username.length < 3) { authError.innerText = "Username must be at least 3 characters."; authError.classList.remove('hide'); return; }
+                if (password.length < 6) { authError.innerText = "Password must be at least 6 characters."; authError.classList.remove('hide'); return; }
                 
                 signupBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
                 const directEmail = getDirectEmail(username);
                 
                 try {
-                    await createUserWithEmailAndPassword(auth, directEmail, password);
-                    await saveUserProfile(username);
+                    const userCredential = await createUserWithEmailAndPassword(auth, directEmail, password);
+                    userProfileData.username = username;
+                    profileNameDisplay.innerText = username;
+                    
+                    // Initialize 0 streaks for all categories
+                    userStats = {};
+                    for (const m of lbModesList) {
+                        for (const l of lbLengthsList[m]) {
+                            userStats[`${m}_${l}`] = { bestStreak: 0, bestWpm: 0 };
+                            if (!isOffline && db) {
+                                const ref = doc(db, 'artifacts', appId, 'public', 'data', `leaderboard_${m}_${l}`, userCredential.user.uid);
+                                await setDoc(ref, { username: username, streak: 0, wpm: 0, updatedAt: Date.now(), uid: userCredential.user.uid }, { merge: true });
+                            }
+                        }
+                    }
+
+                    if (!isOffline && db) {
+                        const profileRef = doc(db, 'artifacts', appId, 'users', userCredential.user.uid, 'profile', 'data');
+                        await setDoc(profileRef, { username: username, stats: userStats, updatedAt: Date.now() }, { merge: true });
+                        // sync registry
+                        const registryRef = doc(db, 'artifacts', appId, 'public', 'data', 'userRegistry', userCredential.user.uid);
+                        await setDoc(registryRef, { uid: userCredential.user.uid, username: username, email: directEmail, lastActive: Date.now(), stats: userStats });
+                    }
+                    
                     closeAuthModal();
                 } catch (error) {
                     authError.innerText = error.code === 'auth/email-already-in-use' ? "Username already taken!" : error.message.replace('Firebase: ', '');
@@ -958,10 +1030,8 @@
                 if (!username || !password) return;
                 
                 loginBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
-                const directEmail = getDirectEmail(username);
-
                 try {
-                    await signInWithEmailAndPassword(auth, directEmail, password);
+                    await signInWithEmailAndPassword(auth, getDirectEmail(username), password);
                     await loadUserProfile();
                     closeAuthModal();
                 } catch (error) {
@@ -975,78 +1045,44 @@
 
         logoutBtn.addEventListener('click', async () => {
             if (auth) {
-                await signOut(auth);
-                await signInAnonymously(auth);
-                userProfileData.username = "Guest";
-                userStats = {};
-                profileNameDisplay.innerText = "Guest";
-                closeAuthModal();
-                loadStreaks();
-                updateStreakUI();
+                await signOut(auth); await signInAnonymously(auth);
+                userProfileData.username = "Guest"; userStats = {}; profileNameDisplay.innerText = "Guest";
+                closeAuthModal(); loadStreaks(); updateStreakUI();
             }
         });
 
         toggleDeleteBtn.addEventListener('click', () => {
-            deleteConfirmBox.classList.remove('hide');
-            logoutBtn.classList.add('hidden');
-            toggleDeleteBtn.classList.add('hidden');
-            deletePasswordInput.value = '';
-            authError.classList.add('hide');
+            deleteConfirmBox.classList.remove('hide'); logoutBtn.classList.add('hidden'); toggleDeleteBtn.classList.add('hidden');
+            deletePasswordInput.value = ''; authError.classList.add('hide');
         });
-
         cancelDeleteBtn.addEventListener('click', () => {
-            deleteConfirmBox.classList.add('hide');
-            logoutBtn.classList.remove('hidden');
-            toggleDeleteBtn.classList.remove('hidden');
+            deleteConfirmBox.classList.add('hide'); logoutBtn.classList.remove('hidden'); toggleDeleteBtn.classList.remove('hidden');
             authError.classList.add('hide');
         });
-
-        async function deleteLeaderboardEntries(docIdStr) {
-            if (isOffline || !db) return;
-            const lbModes = ['time', 'words'];
-            const lbLengths = [15, 30, 60, 120, 10, 25, 50, 100];
-            
-            for (let m of lbModes) {
-                for (let l of lbLengths) {
-                    try {
-                        const ref = doc(db, 'artifacts', appId, 'public', 'data', `leaderboard_${m}_${l}`, docIdStr);
-                        await deleteDoc(ref);
-                    } catch(e) {}
-                }
-            }
-        }
 
         confirmDeleteBtn.addEventListener('click', async () => {
             const password = deletePasswordInput.value;
-            if (!password) {
-                authError.innerText = "Please enter your password to confirm.";
-                authError.classList.remove('hide');
-                return;
-            }
-
+            if (!password) { authError.innerText = "Please enter your password to confirm."; authError.classList.remove('hide'); return; }
             confirmDeleteBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
             try {
                 const credential = EmailAuthProvider.credential(currentUser.email, password);
                 await reauthenticateWithCredential(currentUser, credential);
                 
-                const userDocId = getDocId(userProfileData.username);
-                await deleteLeaderboardEntries(userDocId);
-                
+                // Cleanup public data
                 if (!isOffline && db) {
-                    const profileRef = doc(db, 'artifacts', appId, 'users', currentUser.uid, 'profile', 'data');
-                    await deleteDoc(profileRef);
+                    for (const m of lbModesList) {
+                        for (const l of lbLengthsList[m]) {
+                            try { await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', `leaderboard_${m}_${l}`, currentUser.uid)); } catch(e) {}
+                        }
+                    }
+                    try { await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'userRegistry', currentUser.uid)); } catch(e) {}
+                    try { await deleteDoc(doc(db, 'artifacts', appId, 'users', currentUser.uid, 'profile', 'data')); } catch(e) {}
                 }
-
+                
                 await deleteUser(currentUser);
-                
                 await signInAnonymously(auth);
-                userProfileData.username = "Guest";
-                userStats = {};
-                profileNameDisplay.innerText = "Guest";
-                loadStreaks();
-                updateStreakUI();
-                closeAuthModal();
-                
+                userProfileData.username = "Guest"; userStats = {}; profileNameDisplay.innerText = "Guest";
+                loadStreaks(); updateStreakUI(); closeAuthModal();
             } catch(error) {
                 authError.innerText = error.message.replace('Firebase: ', '');
                 authError.classList.remove('hide');
@@ -1057,47 +1093,45 @@
 
         function switchView(target) {
             currentView = target;
+            viewTest.classList.add('hide'); viewLeaderboard.classList.add('hide'); viewAdmin.classList.add('hide');
+            navTestBtn.className = "px-3 py-1.5 rounded-md text-xs font-semibold text-[var(--sub-color)] hover:text-[var(--text-color)] transition-all flex items-center gap-1.5";
+            navLeaderboardBtn.className = "px-3 py-1.5 rounded-md text-xs font-semibold text-[var(--sub-color)] hover:text-[var(--text-color)] transition-all flex items-center gap-1.5";
+            navAdminBtn.className = "px-3 py-1.5 rounded-md text-xs font-semibold text-[var(--sub-color)] hover:text-[var(--text-color)] transition-all flex items-center gap-1.5";
+            configBar.classList.add('invisible');
+
             if (target === 'test') {
-                viewTest.classList.remove('hide');
-                viewLeaderboard.classList.add('hide');
-                configBar.classList.remove('invisible');
-                navTestBtn.className = "px-3 py-1.5 rounded-md text-xs font-semibold text-[var(--main-color)] bg-[var(--bg-color)] transition-all flex items-center gap-1.5 shadow-sm";
-                navLeaderboardBtn.className = "px-3 py-1.5 rounded-md text-xs font-semibold text-[var(--sub-color)] hover:text-[var(--text-color)] transition-all flex items-center gap-1.5";
-            } else {
-                viewTest.classList.add('hide');
+                viewTest.classList.remove('hide'); configBar.classList.remove('invisible');
+                navTestBtn.classList.add('text-[var(--main-color)]', 'bg-[var(--bg-color)]', 'shadow-sm');
+                navTestBtn.classList.remove('text-[var(--sub-color)]', 'hover:text-[var(--text-color)]');
+            } else if (target === 'leaderboard') {
                 viewLeaderboard.classList.remove('hide');
-                configBar.classList.add('invisible');
-                navLeaderboardBtn.className = "px-3 py-1.5 rounded-md text-xs font-semibold text-[var(--main-color)] bg-[var(--bg-color)] transition-all flex items-center gap-1.5 shadow-sm";
-                navTestBtn.className = "px-3 py-1.5 rounded-md text-xs font-semibold text-[var(--sub-color)] hover:text-[var(--text-color)] transition-all flex items-center gap-1.5";
-                
-                lbMode = mode;
-                lbLength = length;
-                
+                navLeaderboardBtn.classList.add('text-[var(--main-color)]', 'bg-[var(--bg-color)]', 'shadow-sm');
+                navLeaderboardBtn.classList.remove('text-[var(--sub-color)]', 'hover:text-[var(--text-color)]');
+                lbMode = mode; lbLength = length;
                 lbModeBtns.forEach(b => {
-                    if (b.dataset.mode === lbMode) {
-                        b.classList.add('active', 'text-[var(--main-color)]', 'bg-[var(--sub-alt-color)]');
-                        b.classList.remove('text-[var(--sub-color)]');
-                    } else {
-                        b.classList.remove('active', 'text-[var(--main-color)]', 'bg-[var(--sub-alt-color)]');
-                        b.classList.add('text-[var(--sub-color)]');
-                    }
+                    b.classList.toggle('active', b.dataset.mode === lbMode);
+                    b.classList.toggle('text-[var(--main-color)]', b.dataset.mode === lbMode);
+                    b.classList.toggle('bg-[var(--sub-alt-color)]', b.dataset.mode === lbMode);
+                    b.classList.toggle('text-[var(--sub-color)]', b.dataset.mode !== lbMode);
                 });
-                
-                renderLbLengths();
-                fetchLeaderboard();
+                renderLbLengths(); fetchLeaderboard();
+            } else if (target === 'admin') {
+                viewAdmin.classList.remove('hide');
+                navAdminBtn.classList.add('text-[var(--main-color)]', 'bg-[var(--bg-color)]', 'shadow-sm');
+                navAdminBtn.classList.remove('text-[var(--sub-color)]', 'hover:text-[var(--text-color)]');
+                if (isAdminAuthed) fetchAdminData();
             }
         }
 
         navTestBtn.addEventListener('click', () => switchView('test'));
         navLeaderboardBtn.addEventListener('click', () => switchView('leaderboard'));
+        navAdminBtn.addEventListener('click', () => switchView('admin'));
         logoBtn.addEventListener('click', () => switchView('test'));
 
         function loadStreaks() {
             const key = `${mode}_${length}`;
             currentStreak = 0; 
-            
             let localBest = parseInt(localStorage.getItem(`squad_best_${mode}_${length}`)) || 0;
-
             if (currentUser && !currentUser.isAnonymous) {
                 bestStreak = (userStats[key] && userStats[key].bestStreak) ? userStats[key].bestStreak : 0;
                 if (localBest > bestStreak) {
@@ -1106,24 +1140,15 @@
                     userStats[key].bestStreak = localBest;
                     updateAccountStats(mode, length, bestStreak, userStats[key].bestWpm);
                 }
-            } else {
-                bestStreak = localBest;
-            }
-            
+            } else { bestStreak = localBest; }
             updateStreakUI();
         }
 
         function updateStreakUI(flashing = false, failed = false) {
-            if (currentStreak > bestStreak) {
-                bestStreak = currentStreak;
-            }
-
+            if (currentStreak > bestStreak) bestStreak = currentStreak;
             streakValue.innerText = currentStreak;
             bestStreakValue.innerText = bestStreak;
-            
-            if (!currentUser || currentUser.isAnonymous) {
-                localStorage.setItem(`squad_best_${mode}_${length}`, bestStreak);
-            }
+            if (!currentUser || currentUser.isAnonymous) localStorage.setItem(`squad_best_${mode}_${length}`, bestStreak);
             
             if (currentStreak > 0) streakDisplay.classList.add('streak-active');
             else streakDisplay.classList.remove('streak-active');
@@ -1137,25 +1162,19 @@
             }
         }
 
-        function getRandomWords(count) {
-            const arr = [];
-            for(let i = 0; i < count; i++) arr.push(wordList[Math.floor(Math.random() * wordList.length)]);
-            return arr;
-        }
-
         function renderWords() {
             wordsContainer.innerHTML = '';
             wordsContainer.style.top = '0px';
             const wordCount = mode === 'time' ? 300 : length;
-            words = getRandomWords(wordCount);
+            words = [];
+            for(let i = 0; i < wordCount; i++) words.push(wordList[Math.floor(Math.random() * wordList.length)]);
             
             words.forEach((wordText) => {
                 const wordEl = document.createElement('div');
                 wordEl.className = 'word';
                 for(let i = 0; i < wordText.length; i++) {
                     const letterEl = document.createElement('span');
-                    letterEl.className = 'letter';
-                    letterEl.innerText = wordText[i];
+                    letterEl.className = 'letter'; letterEl.innerText = wordText[i];
                     wordEl.appendChild(letterEl);
                 }
                 wordsContainer.appendChild(wordEl);
@@ -1174,29 +1193,29 @@
             const letters = wordEl.children; 
             for(let i = 0; i < letters.length; i++) {
                 if(!letters[i].classList.contains('correct') && !letters[i].classList.contains('incorrect')) {
-                    activeLetterIndex = i;
-                    break;
+                    activeLetterIndex = i; break;
                 }
             }
             
             let targetEl, appendRight = false;
-            if (activeLetterIndex === -1) {
-                targetEl = letters[letters.length - 1];
-                appendRight = true;
-            } else targetEl = letters[activeLetterIndex]; 
+            if (activeLetterIndex === -1) { targetEl = letters[letters.length - 1]; appendRight = true; } 
+            else targetEl = letters[activeLetterIndex]; 
 
             if (targetEl) {
                 let leftPos = targetEl.offsetLeft;
                 let topPos = targetEl.offsetTop;
                 if (appendRight) leftPos += targetEl.offsetWidth;
 
-                const lineHeight = 48; 
+                const compStyle = getComputedStyle(document.documentElement);
+                const lineHeightStr = compStyle.getPropertyValue('--test-line-height').trim();
+                const lineHeight = parseInt(lineHeightStr.replace('px','')) || 48; 
+                
                 if (topPos > lineHeight) {
                     wordsContainer.style.top = `-${topPos - lineHeight}px`;
-                    caret.style.top = `${lineHeight + 8}px`; 
+                    caret.style.top = `${lineHeight + (lineHeight*0.1)}px`; 
                 } else {
                     wordsContainer.style.top = '0px';
-                    caret.style.top = `${topPos + 8}px`; 
+                    caret.style.top = `${topPos + (lineHeight*0.1)}px`; 
                 }
                 caret.style.left = `${leftPos}px`;
             }
@@ -1214,9 +1233,7 @@
             
             let untypedIndex = -1;
             for(let i = 0; i < letters.length; i++) {
-                if(!letters[i].classList.contains('correct') && !letters[i].classList.contains('incorrect')) {
-                    untypedIndex = i; break;
-                }
+                if(!letters[i].classList.contains('correct') && !letters[i].classList.contains('incorrect')) { untypedIndex = i; break; }
             }
 
             if (e.key === ' ') {
@@ -1228,7 +1245,6 @@
                         hasError = true; break;
                     }
                 }
-                
                 if (hasError) { currentWordEl.classList.add('error-underline'); breakStreak(); }
                 
                 currentWordIndex++;
@@ -1248,8 +1264,7 @@
                         const prevWord = wordsContainer.children[currentWordIndex - 1];
                         if (prevWord.classList.contains('error-underline')) {
                             prevWord.classList.remove('error-underline');
-                            currentWordIndex--;
-                            updateCaretPosition();
+                            currentWordIndex--; updateCaretPosition();
                         }
                     }
                 } else {
@@ -1264,98 +1279,62 @@
 
             if (e.key.length === 1) {
                 if (untypedIndex !== -1) {
-                    const expected = letters[untypedIndex].innerText;
-                    if (e.key === expected) {
-                        letters[untypedIndex].classList.add('correct');
-                        correctChars++;
+                    if (e.key === letters[untypedIndex].innerText) {
+                        letters[untypedIndex].classList.add('correct'); correctChars++;
                     } else {
-                        breakStreak();
-                        letters[untypedIndex].classList.add('incorrect');
-                        incorrectChars++;
+                        breakStreak(); letters[untypedIndex].classList.add('incorrect'); incorrectChars++;
                     }
                 } else {
                     breakStreak();
                     const extra = document.createElement('span');
-                    extra.className = 'letter incorrect extra';
-                    extra.innerText = e.key;
-                    currentWordEl.appendChild(extra);
-                    extraChars++;
+                    extra.className = 'letter incorrect extra'; extra.innerText = e.key;
+                    currentWordEl.appendChild(extra); extraChars++;
                 }
                 updateCaretPosition();
             }
         });
 
         function breakStreak() {
-            if (isPerfectTest) {
-                isPerfectTest = false;
-                currentStreak = 0;
-                updateStreakUI(false, true); 
-            }
+            if (isPerfectTest) { isPerfectTest = false; currentStreak = 0; updateStreakUI(false, true); }
         }
 
         function startTest() {
-            hasStarted = true;
-            isPerfectTest = true;
-            timeElapsed = 0;
-            
-            configBar.style.opacity = '0';
-            languageIndicator.style.opacity = '0';
-            restartBtnContainer.style.opacity = '0';
-            setTimeout(() => {
-                configBar.classList.add('invisible');
-                languageIndicator.classList.add('invisible');
-            }, 300);
+            hasStarted = true; isPerfectTest = true; timeElapsed = 0;
+            configBar.style.opacity = '0'; languageIndicator.style.opacity = '0'; restartBtnContainer.style.opacity = '0';
+            setTimeout(() => { configBar.classList.add('invisible'); languageIndicator.classList.add('invisible'); }, 300);
 
             if (mode === 'time') {
-                timeRemaining = length;
-                liveStats.innerText = timeRemaining;
+                timeRemaining = length; liveStats.innerText = timeRemaining;
                 timer = setInterval(() => {
-                    timeRemaining--; timeElapsed++;
-                    liveStats.innerText = timeRemaining;
+                    timeRemaining--; timeElapsed++; liveStats.innerText = timeRemaining;
                     if (timeRemaining <= 0) endTest();
                 }, 1000);
             } else {
-                liveStats.innerText = `0/${length}`;
-                timer = setInterval(() => { timeElapsed++; }, 1000);
+                liveStats.innerText = `0/${length}`; timer = setInterval(() => { timeElapsed++; }, 1000);
             }
         }
 
         function resetTest() {
-            clearInterval(timer);
-            hasStarted = false;
-            isPerfectTest = true;
+            clearInterval(timer); hasStarted = false; isPerfectTest = true;
             correctChars = 0; incorrectChars = 0; extraChars = 0; missedChars = 0;
             
-            resultsScreen.classList.add('hide');
-            testContainer.classList.remove('hide');
-            liveStats.classList.remove('hide');
-            configBar.classList.remove('invisible');
-            configBar.style.opacity = '1';
-            languageIndicator.classList.remove('invisible');
-            languageIndicator.style.opacity = '1';
+            resultsScreen.classList.add('hide'); testContainer.classList.remove('hide'); liveStats.classList.remove('hide');
+            configBar.classList.remove('invisible'); configBar.style.opacity = '1';
+            languageIndicator.classList.remove('invisible'); languageIndicator.style.opacity = '1';
             restartBtnContainer.style.opacity = '1';
 
-            if (mode === 'time') liveStats.innerText = length;
-            else liveStats.innerText = `0/${length}`;
-
+            liveStats.innerText = mode === 'time' ? length : `0/${length}`;
             renderWords();
             setTimeout(() => { if (currentView === 'test') typingTestDiv.focus(); }, 10);
         }
 
         async function endTest() {
-            clearInterval(timer);
-            hasStarted = false;
-            if (timeElapsed === 0) timeElapsed = 1; 
-            
+            clearInterval(timer); hasStarted = false; if (timeElapsed === 0) timeElapsed = 1; 
             for(let i=0; i<currentWordIndex; i++) {
                 const w = wordsContainer.children[i];
-                if (w) {
-                    w.querySelectorAll('.letter').forEach(l => {
-                        if(!l.classList.contains('correct') && !l.classList.contains('incorrect') && !l.classList.contains('extra')) {
-                            missedChars++;
-                        }
-                    });
-                }
+                if (w) w.querySelectorAll('.letter').forEach(l => {
+                    if(!l.classList.contains('correct') && !l.classList.contains('incorrect') && !l.classList.contains('extra')) missedChars++;
+                });
             }
 
             const totalErrors = incorrectChars + extraChars + missedChars;
@@ -1363,16 +1342,11 @@
             const accuracy = totalAttempted === 0 ? 0 : (correctChars / totalAttempted) * 100;
             const wpm = Math.round((correctChars / 5) / (timeElapsed / 60));
 
-            let meetsSpeedRatio = false;
-            if (mode === 'time') meetsSpeedRatio = correctChars >= ((length / 3) * 5);
-            else meetsSpeedRatio = timeElapsed <= (length * 3);
+            let meetsSpeed = mode === 'time' ? correctChars >= ((length / 3) * 5) : timeElapsed <= (length * 3);
 
             if (isPerfectTest) {
-                if (totalAttempted > 0 && accuracy === 100 && meetsSpeedRatio) {
-                    currentStreak++; updateStreakUI(true, false); 
-                } else {
-                    isPerfectTest = false; currentStreak = 0; updateStreakUI(false, true); 
-                }
+                if (totalAttempted > 0 && accuracy === 100 && meetsSpeed) { currentStreak++; updateStreakUI(true, false); } 
+                else { isPerfectTest = false; currentStreak = 0; updateStreakUI(false, true); }
             }
 
             document.getElementById('result-wpm').innerText = wpm;
@@ -1385,13 +1359,9 @@
             else document.getElementById('result-streak').innerHTML = `Broken <span class="text-sm" style="color: var(--sub-color)">(0)</span>`;
             document.getElementById('result-best-streak').innerText = bestStreak;
 
-            testContainer.classList.add('hide');
-            liveStats.classList.add('hide');
-            configBar.classList.add('invisible');
-            languageIndicator.classList.add('invisible');
-            restartBtnContainer.style.opacity = '0';
-            resultsScreen.classList.remove('hide');
-            document.getElementById('next-test-btn').focus();
+            testContainer.classList.add('hide'); liveStats.classList.add('hide'); configBar.classList.add('invisible');
+            languageIndicator.classList.add('invisible'); restartBtnContainer.style.opacity = '0';
+            resultsScreen.classList.remove('hide'); document.getElementById('next-test-btn').focus();
 
             await updateAccountStats(mode, length, bestStreak, wpm);
         }
@@ -1405,7 +1375,6 @@
             }
 
             if (!userStats[key]) userStats[key] = { bestStreak: 0, bestWpm: 0 };
-
             if (localBestStreak > userStats[key].bestStreak) userStats[key].bestStreak = localBestStreak;
             if (wpm > userStats[key].bestWpm) userStats[key].bestWpm = wpm;
 
@@ -1413,24 +1382,13 @@
                 try {
                     const profileRef = doc(db, 'artifacts', appId, 'users', currentUser.uid, 'profile', 'data');
                     await setDoc(profileRef, { stats: userStats }, { merge: true });
-                    await syncScoreToCloudForMode(statMode, statLength, userStats[key].bestStreak, userStats[key].bestWpm, userProfileData.username);
+                    
+                    const userScoreRef = doc(db, 'artifacts', appId, 'public', 'data', `leaderboard_${statMode}_${statLength}`, currentUser.uid);
+                    await setDoc(userScoreRef, { username: userProfileData.username, streak: userStats[key].bestStreak, wpm: userStats[key].bestWpm, updatedAt: Date.now(), uid: currentUser.uid }, { merge: true });
+                    
+                    await syncUserRegistry();
                 } catch(e) {}
             }
-        }
-
-        async function syncScoreToCloudForMode(syncMode, syncLength, scoreStreak, scoreWpm, username) {
-            if (isOffline || !currentUser || !db || (scoreStreak === 0 && scoreWpm === 0)) return;
-            try {
-                const docId = getDocId(username);
-                const userScoreRef = doc(db, 'artifacts', appId, 'public', 'data', `leaderboard_${syncMode}_${syncLength}`, docId);
-                await setDoc(userScoreRef, {
-                    username: username,
-                    streak: scoreStreak,
-                    wpm: scoreWpm,
-                    updatedAt: Date.now(),
-                    uid: currentUser.uid
-                }, { merge: true });
-            } catch(e) {}
         }
 
         function saveLocalScore(lMode, lLength, scoreStreak, wpm, name) {
@@ -1444,20 +1402,16 @@
                 localData[key][existingIdx].wpm = Math.max(localData[key][existingIdx].wpm || 0, wpm);
             } else localData[key].push({ username: name, streak: scoreStreak, wpm: wpm });
             
-            localData[key].sort((a,b) => b.streak - a.streak || (b.wpm || 0) - (a.wpm || 0));
             localStorage.setItem('monkeytype_local_lb', JSON.stringify(localData));
         }
 
         async function fetchLeaderboard() {
             lbCategoryTitle.innerText = `Top Streaks for ${lbMode} ${lbLength}`;
-            
             if (isOffline || !db) {
                 lbStatus.innerText = "Local Mode";
                 lbStatus.className = "text-xs text-amber-500 font-mono bg-[var(--sub-alt-color)] px-3 py-1.5 rounded-lg border border-theme";
-                renderLocalLeaderboard();
-                return;
+                renderLocalLeaderboard(); return;
             }
-
             lbStatus.innerText = "Syncing...";
             lbStatus.className = "text-xs text-[var(--main-color)] font-mono bg-[var(--sub-alt-color)] px-3 py-1.5 rounded-lg border border-theme";
 
@@ -1468,28 +1422,28 @@
                 let results = [];
                 querySnap.forEach(docSnap => {
                     const data = docSnap.data();
-                    if (data.username && data.username.toLowerCase() !== 'testuser') {
-                        results.push({ id: docSnap.id, ...data });
-                    }
+                    if (data.username && data.username.toLowerCase() !== 'testuser') results.push({ id: docSnap.id, ...data });
                 });
                 
                 results.sort((a, b) => {
                     if (b.streak !== a.streak) return b.streak - a.streak;
-                    return (b.wpm || 0) - (a.wpm || 0);
+                    if ((b.wpm || 0) !== (a.wpm || 0)) return (b.wpm || 0) - (a.wpm || 0);
+                    const nameA = (a.username || '').toLowerCase();
+                    const nameB = (b.username || '').toLowerCase();
+                    return nameA.localeCompare(nameB);
                 });
                 
-                results = results.slice(0, 25);
-                let hasRecords = results.length > 0;
+                results = results.slice(0, 50);
                 let html = '';
                 
                 results.forEach((data, idx) => {
                     const rank = idx + 1;
-                    const isSelf = currentUser && (data.uid === currentUser.uid || data.username === userProfileData.username);
+                    const isSelf = currentUser && (data.uid === currentUser.uid || data.id === currentUser.uid);
                     
                     html += `
                         <div class="grid grid-cols-12 gap-2 px-6 py-3 text-xs items-center ${isSelf ? 'border-l-4 border-[var(--main-color)] bg-[var(--sub-alt-color)] text-[var(--main-color)] font-bold shadow-md' : 'text-[var(--text-color)] hover:bg-[var(--border-color)] transition-colors border-l-4 border-transparent'}">
-                            <div class="col-span-1 text-center font-mono ${rank <= 3 ? 'text-[var(--main-color)] font-bold' : 'text-[var(--sub-color)]'}">
-                                ${rank === 1 ? '<i class="fa-solid fa-crown text-amber-400"></i>' : `#${rank}`}
+                            <div class="col-span-1 text-center font-mono ${rank <= 3 && data.streak > 0 ? 'text-[var(--main-color)] font-bold' : 'text-[var(--sub-color)]'}">
+                                ${rank === 1 && data.streak > 0 ? '<i class="fa-solid fa-crown text-amber-400"></i>' : `#${rank}`}
                             </div>
                             <div class="col-span-5 md:col-span-6 flex items-center gap-2 truncate">
                                 <i class="fa-solid fa-user-ninja text-[var(--sub-color)] text-sm"></i>
@@ -1505,7 +1459,7 @@
                     `;
                 });
 
-                if (!hasRecords) leaderboardList.innerHTML = `<div class="p-8 text-center text-[var(--sub-color)] text-sm">No streaks recorded yet for this mode.</div>`;
+                if (results.length === 0) leaderboardList.innerHTML = `<div class="p-8 text-center text-[var(--sub-color)] text-sm">No streaks recorded yet for this mode.</div>`;
                 else leaderboardList.innerHTML = html;
                 lbStatus.innerText = "Live Sync";
             } catch(e) { renderLocalLeaderboard(); }
@@ -1515,6 +1469,12 @@
             const localData = JSON.parse(localStorage.getItem('monkeytype_local_lb') || '{}');
             const items = localData[`${lbMode}_${lbLength}`] || [];
             const filteredItems = items.filter(item => item.username && item.username.toLowerCase() !== 'testuser');
+            
+            filteredItems.sort((a, b) => {
+                if (b.streak !== a.streak) return b.streak - a.streak;
+                if ((b.wpm || 0) !== (a.wpm || 0)) return (b.wpm || 0) - (a.wpm || 0);
+                return (a.username || '').toLowerCase().localeCompare((b.username || '').toLowerCase());
+            });
 
             if (filteredItems.length === 0) {
                 leaderboardList.innerHTML = `<div class="p-8 text-center text-[var(--sub-color)] text-sm">No streaks recorded yet for this mode.</div>`;
@@ -1522,13 +1482,13 @@
             }
 
             let html = '';
-            filteredItems.slice(0, 25).forEach((item, idx) => {
+            filteredItems.slice(0, 50).forEach((item, idx) => {
                 const rank = idx + 1;
                 const isSelf = item.username === userProfileData.username;
                 html += `
                     <div class="grid grid-cols-12 gap-2 px-6 py-3 text-xs items-center ${isSelf ? 'border-l-4 border-[var(--main-color)] bg-[var(--sub-alt-color)] text-[var(--main-color)] font-bold shadow-md' : 'text-[var(--text-color)] hover:bg-[var(--border-color)] transition-colors border-l-4 border-transparent'}">
-                        <div class="col-span-1 text-center font-mono ${rank <= 3 ? 'text-[var(--main-color)] font-bold' : 'text-[var(--sub-color)]'}">
-                            ${rank === 1 ? '<i class="fa-solid fa-crown text-amber-400"></i>' : `#${rank}`}
+                        <div class="col-span-1 text-center font-mono ${rank <= 3 && item.streak > 0 ? 'text-[var(--main-color)] font-bold' : 'text-[var(--sub-color)]'}">
+                            ${rank === 1 && item.streak > 0 ? '<i class="fa-solid fa-crown text-amber-400"></i>' : `#${rank}`}
                         </div>
                         <div class="col-span-5 md:col-span-6 flex items-center gap-2 truncate">
                             <i class="fa-solid fa-user-ninja text-[var(--sub-color)] text-sm"></i>
@@ -1546,6 +1506,66 @@
             leaderboardList.innerHTML = html;
         }
 
+        adminLoginBtn.addEventListener('click', () => {
+            if (adminPasscodeInput.value === 'squadadmin') {
+                isAdminAuthed = true;
+                adminAuthError.classList.add('hide');
+                adminAuthOverlay.classList.add('hide');
+                adminContent.classList.remove('hide');
+                fetchAdminData();
+            } else {
+                adminAuthError.classList.remove('hide');
+            }
+        });
+
+        adminRefreshBtn.addEventListener('click', () => {
+            if (isAdminAuthed) fetchAdminData();
+        });
+
+        async function fetchAdminData() {
+            if (isOffline || !db) {
+                adminUserList.innerHTML = `<div class="p-8 text-center text-red-500 text-sm">Cannot access database in offline mode.</div>`;
+                return;
+            }
+            adminUserList.innerHTML = `<div class="p-8 text-center text-[var(--sub-color)] text-sm"><i class="fa-solid fa-circle-notch fa-spin mr-2"></i> Loading users...</div>`;
+            try {
+                const regRef = collection(db, 'artifacts', appId, 'public', 'data', 'userRegistry');
+                const querySnap = await getDocs(regRef);
+                
+                let users = [];
+                querySnap.forEach(docSnap => users.push({ id: docSnap.id, ...docSnap.data() }));
+                users.sort((a, b) => (b.lastActive || 0) - (a.lastActive || 0));
+
+                let html = '';
+                users.forEach(u => {
+                    const dateStr = u.lastActive ? new Date(u.lastActive).toLocaleDateString() : 'Unknown';
+                    const dataSize = u.stats ? Object.keys(u.stats).length : 0;
+                    
+                    html += `
+                        <div class="grid grid-cols-12 gap-2 px-6 py-4 text-xs items-center hover:bg-[var(--bg-color)] transition-colors">
+                            <div class="col-span-4 flex flex-col gap-1">
+                                <span class="font-bold text-[var(--text-color)]">${u.username || 'N/A'}</span>
+                                <span class="text-[var(--sub-color)] text-[10px] select-all">${u.email || u.uid}</span>
+                            </div>
+                            <div class="col-span-3 text-[var(--sub-color)]">${dateStr}</div>
+                            <div class="col-span-3 text-center text-[var(--main-color)] font-mono">${dataSize} modes</div>
+                            <div class="col-span-2 text-right">
+                                <button onclick="alert('User Email: ${u.email}\\n\\nTo reset password, please utilize the Firebase Console Auth section for this exact email.\\n\\nUID: ${u.uid}')" class="bg-[var(--sub-alt-color)] hover:bg-[var(--main-color)] hover:text-black text-[var(--sub-color)] px-2 py-1 rounded transition-colors" title="View details for password reset">
+                                    <i class="fa-solid fa-eye"></i> Info
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                });
+                
+                if (users.length === 0) adminUserList.innerHTML = `<div class="p-8 text-center text-[var(--sub-color)] text-sm">No users registered yet.</div>`;
+                else adminUserList.innerHTML = html;
+
+            } catch(e) {
+                adminUserList.innerHTML = `<div class="p-8 text-center text-red-500 text-sm">Failed to load admin data.</div>`;
+            }
+        }
+
         function setupConfigListeners() {
             const modeItems = document.querySelectorAll('.config-item[data-mode]');
             const lengthContainer = document.getElementById('config-lengths');
@@ -1554,29 +1574,23 @@
                     modeItems.forEach(i => i.classList.remove('active'));
                     e.currentTarget.classList.add('active');
                     mode = e.currentTarget.dataset.mode;
-                    
                     lengthContainer.innerHTML = '';
                     const lengths = mode === 'time' ? [15, 30, 60, 120] : [10, 25, 50, 100];
                     lengths.forEach((val, idx) => {
-                        const span = document.createElement('span');
-                        span.className = `config-item ${idx === 1 ? 'active' : ''}`;
+                        const span = document.createElement('span'); span.className = `config-item ${idx === 1 ? 'active' : ''}`;
                         span.dataset.val = val; span.innerText = val;
                         span.addEventListener('click', lengthClickHandler);
                         lengthContainer.appendChild(span);
                     });
-                    
-                    length = lengths[1];
-                    loadStreaks(); resetTest();
+                    length = lengths[1]; loadStreaks(); resetTest();
                 });
             });
 
             function lengthClickHandler(e) {
                 document.querySelectorAll('#config-lengths .config-item').forEach(i => i.classList.remove('active'));
-                e.currentTarget.classList.add('active');
-                length = parseInt(e.currentTarget.dataset.val);
+                e.currentTarget.classList.add('active'); length = parseInt(e.currentTarget.dataset.val);
                 loadStreaks(); resetTest();
             }
-
             document.querySelectorAll('#config-lengths .config-item[data-val]').forEach(i => i.addEventListener('click', lengthClickHandler));
         }
 
@@ -1586,41 +1600,26 @@
             if (!lengths.includes(lbLength)) lbLength = lengths[1]; 
             lengths.forEach((val) => {
                 const btn = document.createElement('button');
-                const isActive = val === lbLength;
-                btn.className = `px-3 py-1.5 rounded-md transition-all text-xs font-semibold border ${isActive ? 'bg-[var(--main-color)] text-black border-[var(--main-color)] shadow-sm' : 'bg-[var(--bg-color)] text-[var(--sub-color)] hover:text-[var(--text-color)] border-transparent'}`;
+                btn.className = `px-3 py-1.5 rounded-md transition-all text-xs font-semibold border ${val === lbLength ? 'bg-[var(--main-color)] text-black border-[var(--main-color)] shadow-sm' : 'bg-[var(--bg-color)] text-[var(--sub-color)] hover:text-[var(--text-color)] border-transparent'}`;
                 btn.innerText = val; btn.dataset.val = val;
-                btn.addEventListener('click', (e) => {
-                    lbLength = parseInt(e.currentTarget.dataset.val);
-                    renderLbLengths(); fetchLeaderboard();
-                });
+                btn.addEventListener('click', (e) => { lbLength = parseInt(e.currentTarget.dataset.val); renderLbLengths(); fetchLeaderboard(); });
                 lbLengthTabs.appendChild(btn);
             });
         }
 
         lbModeBtns.forEach(btn => {
             btn.addEventListener('click', (e) => {
-                lbModeBtns.forEach(b => {
-                    b.classList.remove('active', 'text-[var(--main-color)]', 'bg-[var(--sub-alt-color)]');
-                    b.classList.add('text-[var(--sub-color)]');
-                });
-                e.currentTarget.classList.add('active', 'text-[var(--main-color)]', 'bg-[var(--sub-alt-color)]');
-                e.currentTarget.classList.remove('text-[var(--sub-color)]');
-                lbMode = e.currentTarget.dataset.mode;
-                renderLbLengths(); fetchLeaderboard();
+                lbModeBtns.forEach(b => { b.classList.remove('active', 'text-[var(--main-color)]', 'bg-[var(--sub-alt-color)]'); b.classList.add('text-[var(--sub-color)]'); });
+                e.currentTarget.classList.add('active', 'text-[var(--main-color)]', 'bg-[var(--sub-alt-color)]'); e.currentTarget.classList.remove('text-[var(--sub-color)]');
+                lbMode = e.currentTarget.dataset.mode; renderLbLengths(); fetchLeaderboard();
             });
         });
 
         function initApp() {
-            loadPreferences();
-            initAuth();
-            setupConfigListeners();
-            renderLbLengths();
+            loadPreferences(); initAuth(); setupConfigListeners(); renderLbLengths();
             
             typingTestDiv.addEventListener('focus', () => focusOverlay.classList.add('hidden'));
-            typingTestDiv.addEventListener('blur', () => {
-                if(!resultsScreen.classList.contains('hide') || currentView !== 'test') return;
-                focusOverlay.classList.remove('hidden');
-            });
+            typingTestDiv.addEventListener('blur', () => { if(resultsScreen.classList.contains('hide') && currentView === 'test') focusOverlay.classList.remove('hidden'); });
             focusOverlay.addEventListener('click', () => typingTestDiv.focus());
             
             document.addEventListener('keydown', (e) => {
@@ -1631,15 +1630,11 @@
                 if (e.key === ' ' && (e.target === document.body || e.target.tagName === 'BUTTON' || e.target.tagName === 'A')) e.preventDefault();
             });
 
-            restartBtn.addEventListener('click', resetTest);
-            document.getElementById('next-test-btn').addEventListener('click', resetTest);
-
+            restartBtn.addEventListener('click', resetTest); document.getElementById('next-test-btn').addEventListener('click', resetTest);
             typingTestDiv.addEventListener('keydown', () => {
-                caret.classList.add('typing');
-                clearTimeout(caret.typingTimeout);
+                caret.classList.add('typing'); clearTimeout(caret.typingTimeout);
                 caret.typingTimeout = setTimeout(() => caret.classList.remove('typing'), 500);
             });
-
             resetTest();
         }
 
