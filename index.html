@@ -289,7 +289,6 @@
 
         <main class="flex-grow flex flex-col relative w-full pt-2">
             
-            <!-- View: Test -->
             <div id="view-test" class="w-full flex flex-col">
                 <div class="flex justify-center text-[var(--sub-color)] mb-4 text-xs transition-opacity duration-300" id="language-indicator">
                     <span class="cursor-pointer hover:text-[var(--text-color)] transition-colors"><i class="fa-solid fa-globe mr-1.5"></i>english</span>
@@ -403,11 +402,9 @@
         </main>
     </div>
 
-    <!-- Auth Modal -->
     <div id="auth-modal" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4 opacity-0 pointer-events-none transition-opacity duration-300">
         <div class="bg-[var(--bg-color)] border border-theme w-full max-w-md rounded-2xl p-6 shadow-2xl relative transform scale-95 transition-transform duration-300" id="auth-modal-card">
             
-            <!-- Close button (hidden when not logged in to enforce accounts) -->
             <button id="close-auth-modal" class="absolute top-4 right-4 text-[var(--sub-color)] hover:text-[var(--text-color)] text-lg w-8 h-8 rounded-lg flex items-center justify-center transition-colors hidden">
                 <i class="fa-solid fa-xmark"></i>
             </button>
@@ -423,28 +420,22 @@
             <div class="flex flex-col gap-4">
                 <div class="flex flex-col gap-3" id="auth-forms-container">
                     
-                    <!-- Dynamic Auth Container -->
                     <div id="auth-inputs-section" class="flex flex-col gap-3">
-                        
-                        <!-- Tabs -->
                         <div class="flex bg-[var(--sub-alt-color)] p-1 rounded-lg border border-theme mb-2">
                             <button id="tab-login" class="flex-1 py-1.5 text-sm font-bold rounded-md bg-[var(--bg-color)] text-[var(--main-color)] shadow-sm transition-all">Login</button>
                             <button id="tab-signup" class="flex-1 py-1.5 text-sm font-bold rounded-md text-[var(--sub-color)] hover:text-[var(--text-color)] transition-all">Sign Up</button>
                         </div>
 
-                        <!-- Username Input -->
                         <div>
                             <label class="block text-[var(--sub-color)] text-[10px] uppercase font-bold tracking-wider mb-1.5">Username</label>
                             <input type="text" id="username-input" class="w-full bg-[var(--sub-alt-color)] text-[var(--text-color)] px-4 py-2.5 rounded-lg outline-none focus:ring-2 focus:ring-[var(--main-color)] font-mono text-sm transition-all border border-theme placeholder:text-[var(--sub-color)]" placeholder="e.g. TypeMaster99" maxlength="15" autocomplete="off">
                         </div>
                         
-                        <!-- Password Input -->
                         <div>
                             <label class="block text-[var(--sub-color)] text-[10px] uppercase font-bold tracking-wider mb-1.5">Password</label>
                             <input type="password" id="password-input" class="w-full bg-[var(--sub-alt-color)] text-[var(--text-color)] px-4 py-2.5 rounded-lg outline-none focus:ring-2 focus:ring-[var(--main-color)] text-sm transition-all border border-theme placeholder:text-[var(--sub-color)]" placeholder="••••••••">
                         </div>
 
-                        <!-- Warning Message (Sign up only) -->
                         <div id="signup-warning" class="hide mt-1 p-3 bg-amber-900/10 border border-amber-900/30 rounded-lg">
                             <p class="text-amber-500 text-[10px] leading-relaxed font-mono">
                                 <i class="fa-solid fa-triangle-exclamation mr-1"></i>
@@ -452,13 +443,11 @@
                             </p>
                         </div>
 
-                        <!-- Action Buttons -->
                         <div class="mt-2" id="auth-action-buttons">
                             <button id="login-btn" class="w-full bg-[var(--sub-alt-color)] hover:brightness-110 text-[var(--text-color)] font-bold py-2.5 rounded-lg transition-all text-sm border border-theme flex justify-center items-center shadow-sm">Login to Squad</button>
                             <button id="signup-btn" class="w-full bg-[var(--main-color)] text-black font-bold py-2.5 rounded-lg hover:opacity-90 transition-all text-sm shadow-md flex justify-center items-center hide">Create Account</button>
                         </div>
 
-                        <!-- Forgot Password Helper (Login only) -->
                         <div class="text-center mt-2" id="forgot-password-container">
                             <button id="forgot-password-btn" class="text-[var(--sub-color)] hover:text-[var(--text-color)] text-xs transition-colors underline decoration-[var(--border-color)] underline-offset-4">Forgot Password?</button>
                             <div id="forgot-password-msg" class="hide mt-3 p-3 bg-red-900/10 border border-red-900/30 rounded-lg text-left">
@@ -499,7 +488,6 @@
         </div>
     </div>
 
-    <!-- Settings Modal -->
     <div id="settings-modal" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4 opacity-0 pointer-events-none transition-opacity duration-300">
         <div class="bg-[var(--bg-color)] border border-theme w-full max-w-md rounded-2xl p-6 shadow-2xl relative transform scale-95 transition-transform duration-300 max-h-[90vh] overflow-y-auto" id="settings-modal-card">
             <button id="close-settings-modal" class="absolute top-4 right-4 text-[var(--sub-color)] hover:text-[var(--text-color)] text-lg w-8 h-8 rounded-lg flex items-center justify-center transition-colors">
@@ -511,7 +499,6 @@
             </h2>
 
             <div class="flex flex-col gap-6">
-                <!-- Appearance Settings -->
                 <div>
                     <h3 class="text-xs text-[var(--sub-color)] uppercase font-bold tracking-wider mb-3">Appearance</h3>
                     <div class="flex flex-col gap-3">
@@ -529,7 +516,6 @@
                     </div>
                 </div>
 
-                <!-- Font Size Settings -->
                 <div>
                     <h3 class="text-xs text-[var(--sub-color)] uppercase font-bold tracking-wider mb-3">Font Size (Zoom)</h3>
                     <div class="flex gap-2 bg-[var(--sub-alt-color)] p-2 rounded-lg border border-theme">
@@ -539,9 +525,7 @@
                     </div>
                 </div>
 
-                <!-- Account Settings -->
                 <div id="settings-account-section" class="hide flex flex-col gap-6 border-t border-theme pt-4">
-                    
                     <div>
                         <h3 class="text-xs text-[var(--sub-color)] uppercase font-bold tracking-wider mb-2">Change Username</h3>
                         <div class="flex flex-col gap-2">
@@ -593,7 +577,7 @@
         let userStats = {}; 
         let currentView = 'test';
         let isOffline = false;
-        let authMode = 'login'; // 'login' or 'signup'
+        let authMode = 'login';
 
         try {
             if (!firebaseConfig.apiKey) throw new Error("No Firebase Config supplied");
@@ -611,7 +595,6 @@
         const lbModesList = ['time', 'words'];
         const lbLengthsList = { time: [15, 30, 60, 120], words: [10, 25, 50, 100] };
 
-        /* Game State */
         let mode = 'time'; 
         let length = 30; 
         let lbMode = 'time';
@@ -635,7 +618,6 @@
         let bestStreak = 0;
         let isPerfectTest = true;
 
-        /* DOM Elements */
         const typingTestDiv = document.getElementById('typing-test');
         const wordsContainer = document.getElementById('words-container');
         const caret = document.getElementById('caret');
@@ -659,7 +641,6 @@
         const viewLeaderboard = document.getElementById('view-leaderboard');
         const logoBtn = document.getElementById('logo-btn');
 
-        /* Auth & Settings */
         const authModal = document.getElementById('auth-modal');
         const authModalCard = document.getElementById('auth-modal-card');
         const authModalTrigger = document.getElementById('auth-modal-trigger');
@@ -669,7 +650,6 @@
         const usernameInput = document.getElementById('username-input');
         const passwordInput = document.getElementById('password-input');
         
-        /* Auth UI Elements */
         const tabLogin = document.getElementById('tab-login');
         const tabSignup = document.getElementById('tab-signup');
         const loginBtn = document.getElementById('login-btn');
@@ -778,10 +758,9 @@
         if (auth) {
             onAuthStateChanged(auth, async (user) => {
                 if (user) {
-                    // Force old guest accounts to logout and create real accounts
                     if (user.isAnonymous) {
                         await signOut(auth);
-                        return; // This will re-trigger onAuthStateChanged with null
+                        return;
                     }
                     
                     currentUser = user;
@@ -795,8 +774,8 @@
                     toggleDeleteBtn.classList.remove('hidden');
                     settingsAccountSection.classList.remove('hide');
                     
-                    closeAuthBtn.classList.remove('hidden'); // Allow closing modal
-                    closeAuthModal(); // Auto-close since auth was successful
+                    closeAuthBtn.classList.remove('hidden');
+                    closeAuthModal();
                     
                     await syncUserRegistry(); 
                     loadStreaks();
@@ -807,7 +786,6 @@
                     userStats = {};
                     profileNameDisplay.innerText = "Log In";
                     
-                    // Force the user to log in or sign up
                     openAuthModal();
                     
                     authInputsSection.classList.remove('hidden');
@@ -821,7 +799,6 @@
         }
 
         async function initAuth() {
-            // Nothing to do initially, onAuthStateChanged will handle prompting users.
             if (isOffline || !auth) {
                 profileNameDisplay.innerText = "Offline Mode";
                 return;
@@ -937,7 +914,6 @@
             }
         });
 
-        /* --- Auth Modal UI Logic --- */
         function setAuthMode(mode) {
             authMode = mode;
             authError.classList.add('hide');
@@ -988,7 +964,6 @@
                 toggleDeleteBtn.classList.remove('hidden');
                 closeAuthBtn.classList.remove('hidden');
             } else {
-                // If not logged in, enforce account creation/login by removing the close button
                 closeAuthBtn.classList.add('hidden');
             }
             
@@ -997,7 +972,7 @@
             authModalCard.classList.add('scale-100');
         }
         function closeAuthModal() {
-            if (!currentUser) return; // Prevent closing if not logged in
+            if (!currentUser) return;
             authModal.classList.add('opacity-0', 'pointer-events-none');
             authModalCard.classList.remove('scale-100');
             authModalCard.classList.add('scale-95');
@@ -1038,8 +1013,6 @@
                         const registryRef = doc(db, 'artifacts', appId, 'public', 'data', 'userRegistry', userCredential.user.uid);
                         await setDoc(registryRef, { uid: userCredential.user.uid, username: username, email: directEmail, lastActive: Date.now(), stats: userStats });
                     }
-                    
-                    // onAuthStateChanged will handle closing the modal
                 } catch (error) {
                     authError.innerText = error.code === 'auth/email-already-in-use' ? "Username already taken! If it's yours, try logging in." : error.message.replace('Firebase: ', '');
                     authError.classList.remove('hide');
@@ -1057,7 +1030,6 @@
                 try {
                     await signInWithEmailAndPassword(auth, getDirectEmail(username), password);
                     await loadUserProfile();
-                    // onAuthStateChanged will handle closing the modal
                 } catch (error) {
                     authError.innerText = "Incorrect username or password.";
                     authError.classList.remove('hide');
@@ -1070,7 +1042,6 @@
         logoutBtn.addEventListener('click', async () => {
             if (auth) {
                 await signOut(auth);
-                // onAuthStateChanged will handle showing the modal again
             }
         });
 
@@ -1102,7 +1073,6 @@
                 }
                 
                 await deleteUser(currentUser);
-                // onAuthStateChanged will handle showing the modal again
             } catch(error) {
                 authError.innerText = error.message.replace('Firebase: ', '');
                 authError.classList.remove('hide');
@@ -1143,10 +1113,9 @@
 
         function loadStreaks() {
             const key = `${mode}_${length}`;
-            currentStreak = 0; // Strictly resets current to 0 on mode change or login
+            currentStreak = 0;
             
             if (currentUser) {
-                // Strictly fetch best from the user stats (Defaults to 0)
                 bestStreak = (userStats[key] && userStats[key].bestStreak) ? userStats[key].bestStreak : 0;
             } else { 
                 bestStreak = 0; 
@@ -1231,7 +1200,7 @@
         }
 
         typingTestDiv.addEventListener('keydown', (e) => {
-            if (currentView !== 'test' || !currentUser) return; // Prevent typing if not logged in
+            if (currentView !== 'test' || !currentUser) return;
             if (!hasStarted && e.key.length === 1 && !e.metaKey && !e.ctrlKey) startTest();
             if (e.ctrlKey || e.metaKey || e.altKey || ["Tab", "Escape", "Enter", "Shift", "CapsLock", "Alt"].includes(e.key)) return;
 
@@ -1378,7 +1347,7 @@
         async function updateAccountStats(statMode, statLength, localBestStreak, wpm) {
             const key = `${statMode}_${statLength}`;
             
-            if (!currentUser) return; // Prevent saving if not logged in
+            if (!currentUser) return;
 
             if (!userStats[key]) userStats[key] = { bestStreak: 0, bestWpm: 0 };
             if (localBestStreak > userStats[key].bestStreak) userStats[key].bestStreak = localBestStreak;
@@ -1418,6 +1387,7 @@
                     if (data.username && data.username.toLowerCase() !== 'testuser') results.push({ id: docSnap.id, ...data });
                 });
                 
+                // Sort by highest streak first, then highest WPM
                 results.sort((a, b) => {
                     if (b.streak !== a.streak) return b.streak - a.streak;
                     if ((b.wpm || 0) !== (a.wpm || 0)) return (b.wpm || 0) - (a.wpm || 0);
@@ -1425,7 +1395,20 @@
                     const nameB = (b.username || '').toLowerCase();
                     return nameA.localeCompare(nameB);
                 });
-                
+
+                // Deduplicate accounts with the same username (e.g. Eyob)
+                // Keeps only the best performing account for each unique username
+                const seenUsernames = new Set();
+                const uniqueResults = [];
+                for (const item of results) {
+                    const normalizedName = (item.username || '').trim().toLowerCase();
+                    if (normalizedName && !seenUsernames.has(normalizedName)) {
+                        seenUsernames.add(normalizedName);
+                        uniqueResults.push(item);
+                    }
+                }
+                results = uniqueResults;
+
                 results = results.slice(0, 50);
                 let html = '';
                 
@@ -1517,7 +1500,7 @@
             focusOverlay.addEventListener('click', () => typingTestDiv.focus());
             
             document.addEventListener('keydown', (e) => {
-                if (currentView !== 'test' || !currentUser) return; // Prevent hotkeys if not logged in
+                if (currentView !== 'test' || !currentUser) return;
                 if (document.activeElement && (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA')) return;
                 if (document.activeElement !== typingTestDiv && e.key.length === 1 && !e.ctrlKey && !e.metaKey) typingTestDiv.focus();
                 if (e.key === 'Tab') { e.preventDefault(); resetTest(); }
