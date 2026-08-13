@@ -18,6 +18,7 @@
             --text-color: #D1D2C7;
             --error-color: #ca4754;
             --error-extra-color: #7e2a33;
+            --border-color: #262626;
             --font-family: 'Roboto Mono', monospace;
         }
 
@@ -31,8 +32,10 @@
             display: flex;
             flex-direction: column;
             min-height: 100vh;
+            transition: background-color 0.3s ease, color 0.3s ease;
         }
 
+        /* Streak & Animations */
         .streak-counter {
             color: var(--sub-color);
             font-weight: 700;
@@ -68,6 +71,7 @@
             animation: flashGreen 1s ease-out;
         }
 
+        /* UI Elements */
         .config-bar-container {
             display: flex;
             gap: 1rem;
@@ -85,6 +89,7 @@
             padding: 0.35rem 1rem;
             gap: 1rem;
             align-items: center;
+            transition: background-color 0.3s ease;
         }
         .config-item {
             cursor: pointer;
@@ -96,6 +101,7 @@
             color: var(--main-color);
         }
 
+        /* Typing Area */
         #typing-test {
             position: relative;
             font-size: 1.75rem;
@@ -139,7 +145,7 @@
             height: 2rem;
             background-color: var(--caret-color);
             border-radius: 2px;
-            transition: left 0.1s ease, top 0.1s ease;
+            transition: left 0.1s ease, top 0.1s ease, background-color 0.3s;
             animation: blink 1s infinite;
             z-index: 10;
         }
@@ -154,10 +160,11 @@
             50% { opacity: 0; }
         }
 
+        /* Modals & Overlays */
         #focus-overlay {
             position: absolute;
             inset: 0;
-            background: rgba(15, 15, 15, 0.8);
+            background: rgba(0, 0, 0, 0.5);
             backdrop-filter: blur(4px);
             display: flex;
             align-items: center;
@@ -177,7 +184,7 @@
         
         .stat-group { display: flex; flex-direction: column; }
         .stat-title { color: var(--sub-color); font-size: 1rem; margin-bottom: -0.25rem; }
-        .stat-val { color: var(--main-color); font-size: 3rem; font-weight: 500; line-height: 1.1; }
+        .stat-val { color: var(--main-color); font-size: 3rem; font-weight: 500; line-height: 1.1; transition: color 0.3s; }
         
         .nav-button {
             color: var(--sub-color);
@@ -188,30 +195,49 @@
             color: var(--text-color);
         }
 
+        .theme-btn {
+            border: 2px solid transparent;
+        }
+        .theme-btn.active {
+            border-color: var(--main-color);
+        }
+        .color-btn {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: transform 0.2s;
+            border: 2px solid transparent;
+        }
+        .color-btn:hover { transform: scale(1.1); }
+        .color-btn.active { border-color: var(--text-color); transform: scale(1.1); }
+
         ::-webkit-scrollbar { width: 6px; }
         ::-webkit-scrollbar-track { background: var(--bg-color); }
         ::-webkit-scrollbar-thumb { background: var(--sub-alt-color); border-radius: 3px; }
         ::-webkit-scrollbar-thumb:hover { background: var(--sub-color); }
+        
+        .border-theme { border-color: var(--border-color); }
     </style>
 </head>
 <body class="antialiased selection:bg-cyan-600/30">
 
     <div class="max-w-[1000px] mx-auto w-full px-6 py-6 flex flex-col min-h-screen">
         
-        <header class="flex justify-between items-center mb-8 w-full">
+        <header class="flex justify-between items-center mb-8 w-full flex-wrap gap-4">
             <div class="flex items-center gap-6">
                 <div id="logo-btn" class="flex items-center gap-2 group cursor-pointer">
                     <div class="relative flex items-center justify-center w-9 h-9 rounded-lg bg-[var(--sub-alt-color)] text-[var(--main-color)] transition-transform group-hover:scale-105">
                         <i class="fa-solid fa-keyboard text-lg"></i>
                     </div>
                     <div class="text-2xl font-bold tracking-tighter text-[var(--text-color)] flex items-baseline">
-                        mt<span class="text-[var(--main-color)]">.</span>
+                        mt<span class="text-[var(--main-color)] transition-colors">.</span>
                     </div>
                 </div>
 
                 <!-- Navigation Tabs -->
                 <nav class="flex items-center gap-2 bg-[var(--sub-alt-color)] p-1 rounded-lg">
-                    <button id="nav-test-btn" class="px-3 py-1.5 rounded-md text-xs font-semibold text-[var(--main-color)] bg-[var(--bg-color)] transition-all flex items-center gap-1.5">
+                    <button id="nav-test-btn" class="px-3 py-1.5 rounded-md text-xs font-semibold text-[var(--main-color)] bg-[var(--bg-color)] transition-all flex items-center gap-1.5 shadow-sm">
                         <i class="fa-solid fa-keyboard"></i> Test
                     </button>
                     <button id="nav-leaderboard-btn" class="px-3 py-1.5 rounded-md text-xs font-semibold text-[var(--sub-color)] hover:text-[var(--text-color)] transition-all flex items-center gap-1.5">
@@ -232,14 +258,19 @@
                         <span id="best-streak-value" class="text-xs font-bold text-[var(--text-color)]">0</span>
                     </div>
 
-                    <div class="absolute top-10 right-0 w-max bg-[var(--sub-alt-color)] text-[var(--text-color)] text-xs py-1 px-3 rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 shadow-lg">
+                    <div class="absolute top-10 right-0 w-max bg-[var(--sub-alt-color)] text-[var(--text-color)] text-xs py-1 px-3 rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 shadow-lg border border-theme">
                         100% Accuracy Required. Resets on first typo.
                     </div>
                 </div>
 
+                <!-- Settings Trigger Button -->
+                <button id="settings-modal-trigger" class="flex items-center justify-center w-8 h-8 rounded-lg bg-[var(--sub-alt-color)] text-[var(--sub-color)] hover:text-[var(--text-color)] transition-colors shadow-sm">
+                    <i class="fa-solid fa-gear"></i>
+                </button>
+
                 <!-- Profile / Auth trigger button -->
-                <button id="auth-modal-trigger" class="flex items-center gap-2 bg-[var(--sub-alt-color)] hover:bg-[#323437] text-[var(--text-color)] px-3 py-1.5 rounded-lg text-xs font-semibold transition-all shadow-sm">
-                    <i class="fa-solid fa-user-astronaut text-[var(--main-color)]"></i>
+                <button id="auth-modal-trigger" class="flex items-center gap-2 bg-[var(--sub-alt-color)] hover:brightness-110 text-[var(--text-color)] px-3 py-1.5 rounded-lg text-xs font-semibold transition-all shadow-sm">
+                    <i class="fa-solid fa-user-astronaut text-[var(--main-color)] transition-colors"></i>
                     <span id="profile-name-display">Guest</span>
                 </button>
             </div>
@@ -266,14 +297,14 @@
                     <span class="cursor-pointer hover:text-[var(--text-color)] transition-colors"><i class="fa-solid fa-globe mr-1.5"></i>english</span>
                 </div>
 
-                <div id="live-stats" class="text-[1.5rem] text-[var(--main-color)] font-medium mb-2 h-8 transition-opacity duration-300 text-left">
+                <div id="live-stats" class="text-[1.5rem] text-[var(--main-color)] font-medium mb-2 h-8 transition-opacity duration-300 text-left transition-colors">
                     30
                 </div>
 
                 <div id="typing-test-container" class="relative w-full">
                     <div id="focus-overlay" class="hidden">
-                        <div class="text-[var(--text-color)] text-sm md:text-base flex items-center gap-2 bg-[var(--sub-alt-color)] px-6 py-3 rounded-xl shadow-lg border border-neutral-700">
-                            <i class="fa-solid fa-arrow-pointer text-[var(--main-color)]"></i> Click here or press any key to focus
+                        <div class="text-[var(--text-color)] text-sm md:text-base flex items-center gap-2 bg-[var(--sub-alt-color)] px-6 py-3 rounded-xl shadow-lg border border-theme">
+                            <i class="fa-solid fa-arrow-pointer text-[var(--main-color)] transition-colors"></i> Click here or press any key to focus
                         </div>
                     </div>
 
@@ -293,7 +324,7 @@
                 </div>
 
                 <div id="results-screen" class="hide w-full flex flex-col pt-2">
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8 bg-[var(--sub-alt-color)] p-6 rounded-2xl border border-neutral-800 shadow-lg">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8 bg-[var(--sub-alt-color)] p-6 rounded-2xl border border-theme shadow-lg">
                         <div class="flex flex-col gap-6 justify-center">
                             <div class="stat-group">
                                 <span class="stat-title">wpm</span>
@@ -306,21 +337,21 @@
                         </div>
 
                         <div class="flex flex-col gap-3 justify-center text-[var(--text-color)] text-sm">
-                            <div class="flex justify-between w-full border-b border-neutral-800 pb-2">
+                            <div class="flex justify-between w-full border-b border-theme pb-2">
                                 <span class="text-[var(--sub-color)]">test type</span>
                                 <span id="result-type" class="font-semibold">time 30</span>
                             </div>
-                            <div class="flex justify-between w-full border-b border-neutral-800 pb-2">
+                            <div class="flex justify-between w-full border-b border-theme pb-2">
                                 <span class="text-[var(--sub-color)]">characters</span>
                                 <span id="result-chars" class="font-mono">0/0/0/0</span>
                             </div>
-                            <div class="flex justify-between w-full border-b border-neutral-800 pb-2">
+                            <div class="flex justify-between w-full border-b border-theme pb-2">
                                 <span class="text-[var(--sub-color)]">time</span>
                                 <span id="result-time" class="font-semibold">30s</span>
                             </div>
                             <div class="flex justify-between w-full pt-1">
-                                <span class="text-[var(--main-color)] font-bold"><i class="fa-solid fa-fire mr-1"></i> streak</span>
-                                <span id="result-streak" class="text-[var(--main-color)] font-bold">0</span>
+                                <span class="text-[var(--main-color)] font-bold transition-colors"><i class="fa-solid fa-fire mr-1"></i> streak</span>
+                                <span id="result-streak" class="text-[var(--main-color)] font-bold transition-colors">0</span>
                             </div>
                             <div class="flex justify-between w-full">
                                 <span class="text-[var(--sub-color)] text-xs"><i class="fa-solid fa-trophy mr-1"></i> best streak</span>
@@ -330,7 +361,7 @@
                     </div>
                     
                     <div class="flex justify-center">
-                        <button id="next-test-btn" class="nav-button bg-[var(--sub-alt-color)] hover:bg-[var(--main-color)] hover:text-black font-bold text-lg px-8 py-3 rounded-xl transition-all flex items-center gap-2">
+                        <button id="next-test-btn" class="nav-button bg-[var(--sub-alt-color)] text-[var(--text-color)] hover:bg-[var(--main-color)] hover:text-black font-bold text-lg px-8 py-3 rounded-xl transition-all flex items-center gap-2 border border-theme">
                             <span>Next Test</span> <i class="fa-solid fa-arrow-right text-sm"></i>
                         </button>
                     </div>
@@ -341,18 +372,17 @@
                 <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 gap-4">
                     <div>
                         <h2 class="text-2xl font-bold text-[var(--text-color)] flex items-center gap-2">
-                            <i class="fa-solid fa-trophy text-[var(--main-color)]"></i> Squad Leaderboard
+                            <i class="fa-solid fa-trophy text-[var(--main-color)] transition-colors"></i> Squad Leaderboard
                         </h2>
                         <p class="text-[var(--sub-color)] text-xs mt-1" id="lb-category-title">Top 100% Streaks for Time 30</p>
                     </div>
                     
-                    <div id="lb-status" class="text-xs text-[var(--sub-color)] font-mono bg-[var(--sub-alt-color)] px-3 py-1.5 rounded-lg border border-neutral-800">
+                    <div id="lb-status" class="text-xs text-[var(--sub-color)] font-mono bg-[var(--sub-alt-color)] px-3 py-1.5 rounded-lg border border-theme">
                         Live Sync
                     </div>
                 </div>
 
-                <!-- Leaderboard Category Navigation Tabs -->
-                <div class="flex flex-wrap items-center justify-between gap-3 mb-6 bg-[var(--sub-alt-color)] p-2 rounded-xl border border-neutral-800/80 text-xs">
+                <div class="flex flex-wrap items-center justify-between gap-3 mb-6 bg-[var(--sub-alt-color)] p-2 rounded-xl border border-theme text-xs">
                     <div class="flex items-center gap-1 bg-[var(--bg-color)] p-1 rounded-lg" id="lb-mode-tabs">
                         <button class="lb-mode-btn active px-3 py-1 rounded-md transition-all font-semibold text-[var(--main-color)] bg-[var(--sub-alt-color)]" data-mode="time">time</button>
                         <button class="lb-mode-btn px-3 py-1 rounded-md transition-all font-semibold text-[var(--sub-color)] hover:text-[var(--text-color)]" data-mode="words">words</button>
@@ -362,16 +392,15 @@
                     </div>
                 </div>
 
-                <div class="bg-[var(--sub-alt-color)] rounded-2xl border border-neutral-800 overflow-hidden shadow-xl">
-                    <div class="grid grid-cols-12 gap-2 px-6 py-3 bg-neutral-900/50 text-[var(--sub-color)] text-xs font-bold uppercase tracking-wider border-b border-neutral-800">
+                <div class="bg-[var(--sub-alt-color)] rounded-2xl border border-theme overflow-hidden shadow-xl">
+                    <div class="grid grid-cols-12 gap-2 px-6 py-3 bg-[var(--bg-color)] opacity-90 text-[var(--sub-color)] text-xs font-bold uppercase tracking-wider border-b border-theme">
                         <div class="col-span-1 text-center">#</div>
                         <div class="col-span-5 md:col-span-6">User</div>
                         <div class="col-span-3 md:col-span-3 text-right">Best Streak</div>
                         <div class="col-span-3 md:col-span-2 text-right">Best WPM</div>
                     </div>
 
-                    <div id="leaderboard-list" class="divide-y divide-neutral-800 max-h-[450px] overflow-y-auto">
-                        <!-- Leaderboard items rendered dynamically -->
+                    <div id="leaderboard-list" class="divide-y divide-[var(--border-color)] max-h-[450px] overflow-y-auto">
                         <div class="p-8 text-center text-[var(--sub-color)] text-sm">
                             <i class="fa-solid fa-circle-notch fa-spin mr-2"></i> Loading scores...
                         </div>
@@ -381,18 +410,19 @@
         </main>
     </div>
 
+    <!-- AUTH MODAL -->
     <div id="auth-modal" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4 opacity-0 pointer-events-none transition-opacity duration-300">
-        <div class="bg-[var(--bg-color)] border border-neutral-800 w-full max-w-md rounded-2xl p-6 shadow-2xl relative transform scale-95 transition-transform duration-300" id="auth-modal-card">
+        <div class="bg-[var(--bg-color)] border border-theme w-full max-w-md rounded-2xl p-6 shadow-2xl relative transform scale-95 transition-transform duration-300" id="auth-modal-card">
             <button id="close-auth-modal" class="absolute top-4 right-4 text-[var(--sub-color)] hover:text-[var(--text-color)] text-lg w-8 h-8 rounded-lg flex items-center justify-center transition-colors">
                 <i class="fa-solid fa-xmark"></i>
             </button>
 
             <div class="text-center mb-6">
-                <div class="w-14 h-14 rounded-full bg-[var(--sub-alt-color)] text-[var(--main-color)] mx-auto flex items-center justify-center text-2xl mb-3 border border-neutral-800">
+                <div class="w-14 h-14 rounded-full bg-[var(--sub-alt-color)] text-[var(--main-color)] mx-auto flex items-center justify-center text-2xl mb-3 border border-theme transition-colors">
                     <i class="fa-solid fa-user-ninja"></i>
                 </div>
                 <h2 class="text-xl font-bold text-[var(--text-color)]">Squad Login</h2>
-                <p class="text-[var(--sub-color)] text-xs mt-1">Sign in to compete on the leaderboard</p>
+                <p class="text-[var(--sub-color)] text-xs mt-1">Sign in using your unique username</p>
             </div>
             
             <div class="flex flex-col gap-4">
@@ -401,19 +431,19 @@
                     <div id="auth-inputs-section" class="flex flex-col gap-3">
                         <div>
                             <label class="block text-[var(--sub-color)] text-[10px] uppercase font-bold tracking-wider mb-1.5">Username</label>
-                            <input type="text" id="username-input" class="w-full bg-[var(--sub-alt-color)] text-[var(--text-color)] px-4 py-2.5 rounded-lg outline-none focus:ring-2 focus:ring-[var(--main-color)] font-mono text-sm transition-all border border-neutral-800 placeholder:text-[var(--sub-color)]" placeholder="e.g. TypeMaster99" maxlength="15" autocomplete="off">
+                            <input type="text" id="username-input" class="w-full bg-[var(--sub-alt-color)] text-[var(--text-color)] px-4 py-2.5 rounded-lg outline-none focus:ring-2 focus:ring-[var(--main-color)] font-mono text-sm transition-all border border-theme placeholder:text-[var(--sub-color)]" placeholder="e.g. TypeMaster99" maxlength="15" autocomplete="off">
                         </div>
                         
                         <div>
                             <label class="block text-[var(--sub-color)] text-[10px] uppercase font-bold tracking-wider mb-1.5">Password</label>
-                            <input type="password" id="password-input" class="w-full bg-[var(--sub-alt-color)] text-[var(--text-color)] px-4 py-2.5 rounded-lg outline-none focus:ring-2 focus:ring-[var(--main-color)] text-sm transition-all border border-neutral-800 placeholder:text-[var(--sub-color)]" placeholder="••••••••">
+                            <input type="password" id="password-input" class="w-full bg-[var(--sub-alt-color)] text-[var(--text-color)] px-4 py-2.5 rounded-lg outline-none focus:ring-2 focus:ring-[var(--main-color)] text-sm transition-all border border-theme placeholder:text-[var(--sub-color)]" placeholder="••••••••">
                         </div>
 
                         <div class="flex gap-2 mt-2">
-                            <button id="login-btn" class="w-1/2 bg-[var(--sub-alt-color)] hover:bg-[#323437] text-[var(--text-color)] font-bold py-2.5 rounded-lg transition-all text-sm border border-neutral-700 flex justify-center items-center shadow-sm">
+                            <button id="login-btn" class="w-1/2 bg-[var(--sub-alt-color)] hover:brightness-110 text-[var(--text-color)] font-bold py-2.5 rounded-lg transition-all text-sm border border-theme flex justify-center items-center shadow-sm">
                                 Login
                             </button>
-                            <button id="signup-btn" class="w-1/2 bg-[var(--main-color)] text-black font-bold py-2.5 rounded-lg hover:brightness-110 transition-all text-sm shadow-md flex justify-center items-center shadow-cyan-950/30">
+                            <button id="signup-btn" class="w-1/2 bg-[var(--main-color)] text-black font-bold py-2.5 rounded-lg hover:opacity-90 transition-all text-sm shadow-md flex justify-center items-center">
                                 Create Account
                             </button>
                         </div>
@@ -421,27 +451,27 @@
 
                     <!-- Only shown when logged in -->
                     <div id="logged-in-section" class="flex flex-col gap-2.5 hidden">
-                        <button id="logout-btn" class="w-full bg-[var(--sub-alt-color)] hover:bg-[#323437] text-[var(--text-color)] font-bold py-2.5 rounded-lg transition-all text-sm flex justify-center items-center gap-2 border border-neutral-800">
+                        <button id="logout-btn" class="w-full bg-[var(--sub-alt-color)] hover:brightness-110 text-[var(--text-color)] font-bold py-2.5 rounded-lg transition-all text-sm flex justify-center items-center gap-2 border border-theme">
                             <i class="fa-solid fa-right-from-bracket"></i> Sign Out
                         </button>
-                        <button id="toggle-delete-btn" class="w-full bg-red-950/30 hover:bg-red-950/60 text-red-400 hover:text-red-300 border border-red-900/40 font-medium py-2 rounded-lg transition-all text-xs flex justify-center items-center gap-2">
+                        <button id="toggle-delete-btn" class="w-full bg-red-900/20 hover:bg-red-900/40 text-red-500 hover:text-red-400 border border-red-900/40 font-medium py-2 rounded-lg transition-all text-xs flex justify-center items-center gap-2">
                             <i class="fa-solid fa-trash-can"></i> Delete Account
                         </button>
                         
                         <!-- Delete Confirmation Box -->
-                        <div id="delete-confirm-box" class="hide flex flex-col gap-2.5 p-3 mt-1 bg-red-950/20 border border-red-900/50 rounded-xl">
-                            <p class="text-xs text-red-300 font-medium leading-relaxed">
-                                <i class="fa-solid fa-triangle-exclamation mr-1"></i> Warning: This will permanently delete your account and saved scores.
+                        <div id="delete-confirm-box" class="hide flex flex-col gap-2.5 p-3 mt-1 bg-red-900/10 border border-red-900/30 rounded-xl">
+                            <p class="text-xs text-red-500 font-medium leading-relaxed">
+                                <i class="fa-solid fa-triangle-exclamation mr-1"></i> Warning: This will permanently delete your account and all saved scores from the leaderboard.
                             </p>
                             <div>
                                 <label class="block text-[var(--sub-color)] text-[10px] uppercase font-bold tracking-wider mb-1">Confirm Password</label>
-                                <input type="password" id="delete-password-input" class="w-full bg-[var(--sub-alt-color)] text-[var(--text-color)] px-3 py-2 rounded-lg outline-none focus:ring-1 focus:ring-red-500 text-xs border border-neutral-800" placeholder="Enter password to confirm">
+                                <input type="password" id="delete-password-input" class="w-full bg-[var(--sub-alt-color)] text-[var(--text-color)] px-3 py-2 rounded-lg outline-none focus:ring-1 focus:ring-red-500 text-xs border border-theme" placeholder="Enter password to confirm">
                             </div>
                             <div class="flex gap-2 mt-1">
-                                <button id="cancel-delete-btn" class="w-1/2 bg-[var(--sub-alt-color)] text-[var(--sub-color)] hover:text-[var(--text-color)] py-1.5 rounded-lg text-xs font-semibold border border-neutral-800">
+                                <button id="cancel-delete-btn" class="w-1/2 bg-[var(--sub-alt-color)] text-[var(--sub-color)] hover:text-[var(--text-color)] py-1.5 rounded-lg text-xs font-semibold border border-theme">
                                     Cancel
                                 </button>
-                                <button id="confirm-delete-btn" class="w-1/2 bg-red-600 hover:bg-red-500 text-white font-bold py-1.5 rounded-lg text-xs transition-all flex justify-center items-center shadow-md shadow-red-950/50">
+                                <button id="confirm-delete-btn" class="w-1/2 bg-red-600 hover:bg-red-500 text-white font-bold py-1.5 rounded-lg text-xs transition-all flex justify-center items-center shadow-md">
                                     Confirm Delete
                                 </button>
                             </div>
@@ -449,27 +479,77 @@
                     </div>
                     
                     <div class="relative flex py-2 items-center" id="guest-divider">
-                        <div class="flex-grow border-t border-neutral-800"></div>
+                        <div class="flex-grow border-t border-theme"></div>
                         <span class="flex-shrink-0 mx-3 text-[var(--sub-color)] text-[10px] uppercase font-bold tracking-wider">OR</span>
-                        <div class="flex-grow border-t border-neutral-800"></div>
+                        <div class="flex-grow border-t border-theme"></div>
                     </div>
 
                     <button id="guest-btn" class="w-full bg-transparent text-[var(--sub-color)] hover:text-[var(--text-color)] font-medium py-2 rounded-lg transition-all text-xs flex justify-center items-center gap-2">
-                        Continue as Guest (No Leaderboard)
+                        Continue as Guest (No Cloud Save)
                     </button>
                 </div>
 
-                <div id="auth-error" class="text-[var(--error-color)] text-xs text-center hide font-medium mt-1 bg-red-950/30 py-2 rounded-lg border border-red-900/50"></div>
+                <div id="auth-error" class="text-[var(--error-color)] text-xs text-center hide font-medium mt-1 bg-red-900/20 py-2 rounded-lg border border-red-900/30"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- SETTINGS MODAL -->
+    <div id="settings-modal" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4 opacity-0 pointer-events-none transition-opacity duration-300">
+        <div class="bg-[var(--bg-color)] border border-theme w-full max-w-md rounded-2xl p-6 shadow-2xl relative transform scale-95 transition-transform duration-300" id="settings-modal-card">
+            <button id="close-settings-modal" class="absolute top-4 right-4 text-[var(--sub-color)] hover:text-[var(--text-color)] text-lg w-8 h-8 rounded-lg flex items-center justify-center transition-colors">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+
+            <h2 class="text-xl font-bold text-[var(--text-color)] mb-6 flex items-center gap-2">
+                <i class="fa-solid fa-gear text-[var(--main-color)] transition-colors"></i> Settings
+            </h2>
+
+            <div class="flex flex-col gap-6">
+                <!-- Appearance Settings -->
+                <div>
+                    <h3 class="text-xs text-[var(--sub-color)] uppercase font-bold tracking-wider mb-3">Appearance</h3>
+                    <div class="flex flex-col gap-3">
+                        <div class="flex gap-2">
+                            <button class="theme-btn active bg-[var(--sub-alt-color)] text-[var(--text-color)] px-4 py-2 rounded-lg text-sm font-semibold flex-1 border border-theme" data-theme="dark">Dark Mode</button>
+                            <button class="theme-btn bg-[var(--sub-alt-color)] text-[var(--text-color)] px-4 py-2 rounded-lg text-sm font-semibold flex-1 border border-theme" data-theme="light">Light Mode</button>
+                        </div>
+                        <div class="flex gap-3 justify-center bg-[var(--sub-alt-color)] p-3 rounded-lg border border-theme">
+                            <button class="color-btn bg-[#13C9C9] active" data-color="#13C9C9"></button>
+                            <button class="color-btn bg-[#ca4754]" data-color="#ca4754"></button>
+                            <button class="color-btn bg-[#4ade80]" data-color="#4ade80"></button>
+                            <button class="color-btn bg-[#a855f7]" data-color="#a855f7"></button>
+                            <button class="color-btn bg-[#eab308]" data-color="#eab308"></button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Account Settings (Only if logged in) -->
+                <div id="settings-account-section" class="hide flex flex-col gap-4 border-t border-theme pt-4">
+                    <h3 class="text-xs text-[var(--sub-color)] uppercase font-bold tracking-wider mb-1">Account Management</h3>
+                    
+                    <div>
+                        <label class="block text-[var(--sub-color)] text-[10px] uppercase font-bold tracking-wider mb-1.5">Change Password</label>
+                        <div class="flex flex-col gap-2">
+                            <input type="password" id="settings-current-password" class="w-full bg-[var(--sub-alt-color)] text-[var(--text-color)] px-3 py-2 rounded-lg outline-none focus:ring-1 focus:ring-[var(--main-color)] text-sm border border-theme placeholder:text-[var(--sub-color)]" placeholder="Current Password">
+                            <input type="password" id="settings-new-password" class="w-full bg-[var(--sub-alt-color)] text-[var(--text-color)] px-3 py-2 rounded-lg outline-none focus:ring-1 focus:ring-[var(--main-color)] text-sm border border-theme placeholder:text-[var(--sub-color)]" placeholder="New Password (min 6 chars)">
+                            <input type="password" id="settings-confirm-password" class="w-full bg-[var(--sub-alt-color)] text-[var(--text-color)] px-3 py-2 rounded-lg outline-none focus:ring-1 focus:ring-[var(--main-color)] text-sm border border-theme placeholder:text-[var(--sub-color)]" placeholder="Confirm New Password">
+                            <button id="btn-save-password" class="w-full bg-[var(--sub-alt-color)] hover:brightness-110 text-[var(--text-color)] font-bold px-4 py-2 rounded-lg transition-all text-sm border border-theme mt-1">Change Password</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="settings-message" class="text-xs text-center font-medium py-2 rounded-lg hide border"></div>
             </div>
         </div>
     </div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, onAuthStateChanged, signOut, createUserWithEmailAndPassword, signInWithEmailAndPassword, reauthenticateWithCredential, EmailAuthProvider, deleteUser, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged, signOut, createUserWithEmailAndPassword, signInWithEmailAndPassword, reauthenticateWithCredential, updatePassword, EmailAuthProvider, deleteUser, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, doc, getDoc, setDoc, deleteDoc, collection, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'monkeytype-squad-streak';
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'monkeytype-squad-streak-v2';
         
         const myFirebaseConfig = {
             apiKey: "AIzaSyAjYIUxT2IdfapDmx30Cofu7tEpci_LF8I",
@@ -487,7 +567,8 @@
 
         let app, db, auth;
         let currentUser = null;
-        let userProfileData = { username: localStorage.getItem('monkeytype_local_user') || "Guest" };
+        let userProfileData = { username: "Guest" };
+        let userStats = {}; 
         let currentView = 'test';
         let isOffline = false;
 
@@ -497,7 +578,6 @@
             db = getFirestore(app);
             auth = getAuth(app);
         } catch(e) {
-            console.log("Running in offline/local mode. Setup Firebase to share leaderboards.");
             isOffline = true;
         }
 
@@ -505,11 +585,9 @@
             "the","be","of","and","a","to","in","he","have","it","that","for","they","I","with","as","not","on","she","at","by","this","we","you","do","but","from","or","which","one","would","all","will","there","say","who","make","when","can","more","if","no","man","out","other","so","what","time","up","go","about","than","into","could","state","only","new","year","some","take","come","these","know","see","use","get","like","then","first","any","work","now","may","such","give","over","think","most","even","find","day","also","after","way","many","must","look","before","great","back","through","long","where","much","should","well","people","down","own","just","because","good","each","those","feel","seem","how","high","too","place","little","world","very","still","nation","hand","old","life","tell","write","become","here","show","house","both","between","need","mean","call","develop","under","last","right","move","thing","general","school","never","same","another","begin","while","number","part","turn","real","leave","might","want","point","form","off","child","few","small","since","against","ask","late","home","interest","large","person","end","open","public","follow","during","present","without","again","hold","govern","around","possible","head","consider","word","program","problem","however","lead","system","set","order","eye","plan","run","keep","face","fact","group","play","stand","increase","early","course","change","help","line"
         ];
 
-        /* Variables mapped to DOM / Game state */
+        /* Game State */
         let mode = 'time'; 
         let length = 30; 
-
-        /* Separate leaderboard navigation tab state */
         let lbMode = 'time';
         let lbLength = 30;
         
@@ -531,7 +609,7 @@
         let bestStreak = 0;
         let isPerfectTest = true;
 
-        /* DOM Elements Map */
+        /* DOM Map */
         const typingTestDiv = document.getElementById('typing-test');
         const wordsContainer = document.getElementById('words-container');
         const caret = document.getElementById('caret');
@@ -560,38 +638,100 @@
         const authModalCard = document.getElementById('auth-modal-card');
         const authModalTrigger = document.getElementById('auth-modal-trigger');
         const closeAuthBtn = document.getElementById('close-auth-modal');
-        
         const authInputsSection = document.getElementById('auth-inputs-section');
         const loggedInSection = document.getElementById('logged-in-section');
-        
         const usernameInput = document.getElementById('username-input');
         const passwordInput = document.getElementById('password-input');
         const loginBtn = document.getElementById('login-btn');
         const signupBtn = document.getElementById('signup-btn');
-        
         const logoutBtn = document.getElementById('logout-btn');
         const toggleDeleteBtn = document.getElementById('toggle-delete-btn');
         const deleteConfirmBox = document.getElementById('delete-confirm-box');
         const deletePasswordInput = document.getElementById('delete-password-input');
         const cancelDeleteBtn = document.getElementById('cancel-delete-btn');
         const confirmDeleteBtn = document.getElementById('confirm-delete-btn');
-        
         const guestBtn = document.getElementById('guest-btn');
         const guestDivider = document.getElementById('guest-divider');
-
         const profileNameDisplay = document.getElementById('profile-name-display');
         const authError = document.getElementById('auth-error');
         
+        /* Settings Elements */
+        const settingsModal = document.getElementById('settings-modal');
+        const settingsModalCard = document.getElementById('settings-modal-card');
+        const settingsModalTrigger = document.getElementById('settings-modal-trigger');
+        const closeSettingsBtn = document.getElementById('close-settings-modal');
+        const settingsAccountSection = document.getElementById('settings-account-section');
+        const settingsCurrentPassword = document.getElementById('settings-current-password');
+        const settingsNewPassword = document.getElementById('settings-new-password');
+        const settingsConfirmPassword = document.getElementById('settings-confirm-password');
+        const btnSavePassword = document.getElementById('btn-save-password');
+        const settingsMessage = document.getElementById('settings-message');
+
         const lbStatus = document.getElementById('lb-status');
         const lbCategoryTitle = document.getElementById('lb-category-title');
         const leaderboardList = document.getElementById('leaderboard-list');
         const lbLengthTabs = document.getElementById('lb-length-tabs');
         const lbModeBtns = document.querySelectorAll('.lb-mode-btn');
+        const themeBtns = document.querySelectorAll('.theme-btn');
+        const colorBtns = document.querySelectorAll('.color-btn');
 
-        const getDummyEmail = (username) => {
-            const cleanName = username.toLowerCase().replace(/[^a-z0-9]/g, '');
-            return `${cleanName}@squad-local.app`;
+        // Generates strict unique email from username so username forms direct auth logins
+        const getDirectEmail = (username) => {
+            const clean = username.toLowerCase().replace(/[^a-z0-9]/g, '');
+            return `user_${clean}@squadtyping.app`;
         };
+        const getDocId = (username) => username.toLowerCase().replace(/[^a-z0-9]/g, '') || 'anonymous';
+
+        function applyTheme(themeMode, colorHex) {
+            const root = document.documentElement;
+            if (themeMode === 'light') {
+                root.style.setProperty('--bg-color', '#F8F9FA');
+                root.style.setProperty('--sub-alt-color', '#E9ECEF');
+                root.style.setProperty('--text-color', '#212529');
+                root.style.setProperty('--sub-color', '#6C757D');
+                root.style.setProperty('--border-color', '#DEE2E6');
+            } else {
+                root.style.setProperty('--bg-color', '#181818');
+                root.style.setProperty('--sub-alt-color', '#242526');
+                root.style.setProperty('--text-color', '#D1D2C7');
+                root.style.setProperty('--sub-color', '#5E6266');
+                root.style.setProperty('--border-color', '#262626');
+            }
+            root.style.setProperty('--main-color', colorHex);
+            root.style.setProperty('--caret-color', colorHex);
+
+            themeBtns.forEach(btn => {
+                if (btn.dataset.theme === themeMode) btn.classList.add('border-[var(--main-color)]');
+                else btn.classList.remove('border-[var(--main-color)]');
+            });
+            colorBtns.forEach(btn => {
+                if (btn.dataset.color === colorHex) btn.classList.add('active');
+                else btn.classList.remove('active');
+            });
+            
+            localStorage.setItem('monkeytype_theme', themeMode);
+            localStorage.setItem('monkeytype_color', colorHex);
+        }
+
+        function loadPreferences() {
+            const savedTheme = localStorage.getItem('monkeytype_theme') || 'dark';
+            const savedColor = localStorage.getItem('monkeytype_color') || '#13C9C9';
+            applyTheme(savedTheme, savedColor);
+        }
+
+        themeBtns.forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const color = localStorage.getItem('monkeytype_color') || '#13C9C9';
+                applyTheme(e.target.dataset.theme, color);
+            });
+        });
+
+        colorBtns.forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const theme = localStorage.getItem('monkeytype_theme') || 'dark';
+                applyTheme(theme, e.target.dataset.color);
+            });
+        });
 
         if (auth) {
             onAuthStateChanged(auth, async (user) => {
@@ -603,34 +743,36 @@
                         authInputsSection.classList.add('hidden');
                         guestDivider.classList.add('hidden');
                         guestBtn.classList.add('hidden');
-                        
                         loggedInSection.classList.remove('hidden');
                         loggedInSection.classList.add('flex');
-                        
                         deleteConfirmBox.classList.add('hide');
                         logoutBtn.classList.remove('hidden');
                         toggleDeleteBtn.classList.remove('hidden');
+                        settingsAccountSection.classList.remove('hide');
                     } else {
                         authInputsSection.classList.remove('hidden');
                         guestDivider.classList.remove('hidden');
                         guestBtn.classList.remove('hidden');
-                        
                         loggedInSection.classList.add('hidden');
                         loggedInSection.classList.remove('flex');
+                        settingsAccountSection.classList.add('hide');
                     }
 
+                    loadStreaks();
                     if (currentView === 'leaderboard') fetchLeaderboard();
                 } else {
                     currentUser = null;
-                    userProfileData = { username: localStorage.getItem('monkeytype_local_user') || "Guest" };
-                    profileNameDisplay.innerText = userProfileData.username;
+                    userProfileData = { username: "Guest" };
+                    userStats = {};
+                    profileNameDisplay.innerText = "Guest";
                     
                     authInputsSection.classList.remove('hidden');
                     guestDivider.classList.remove('hidden');
                     guestBtn.classList.remove('hidden');
-                    
                     loggedInSection.classList.add('hidden');
                     loggedInSection.classList.remove('flex');
+                    settingsAccountSection.classList.add('hide');
+                    loadStreaks();
                 }
             });
         }
@@ -662,19 +804,23 @@
             try {
                 const profileRef = doc(db, 'artifacts', appId, 'users', currentUser.uid, 'profile', 'data');
                 const snap = await getDoc(profileRef);
-                if (snap.exists() && snap.data().username) {
-                    userProfileData.username = snap.data().username;
-                    localStorage.setItem('monkeytype_local_user', snap.data().username);
+                if (snap.exists()) {
+                    const data = snap.data();
+                    if (data.username) {
+                        userProfileData.username = data.username;
+                    }
+                    if (data.stats) {
+                        userStats = data.stats;
+                    }
+                } else {
+                    userStats = {};
                 }
-            } catch(e) {
-                console.warn("Could not fetch user profile", e);
-            }
+            } catch(e) {}
             profileNameDisplay.innerText = userProfileData.username || "Guest";
         }
 
         async function saveUserProfile(name) {
             userProfileData.username = name;
-            localStorage.setItem('monkeytype_local_user', name);
             profileNameDisplay.innerText = name;
 
             if (isOffline || !currentUser || !db) return true;
@@ -687,13 +833,66 @@
             }
         }
 
+        function showSettingsMsg(msg, isError = false) {
+            settingsMessage.innerText = msg;
+            settingsMessage.classList.remove('hide');
+            if(isError) {
+                settingsMessage.className = "text-xs text-center font-medium py-2 rounded-lg border text-red-500 bg-red-900/10 border-red-900/30 mt-4";
+            } else {
+                settingsMessage.className = "text-xs text-center font-medium py-2 rounded-lg border text-green-500 bg-green-900/10 border-green-900/30 mt-4";
+            }
+            setTimeout(() => settingsMessage.classList.add('hide'), 4000);
+        }
+
+        settingsModalTrigger.addEventListener('click', () => {
+            settingsCurrentPassword.value = "";
+            settingsNewPassword.value = "";
+            settingsConfirmPassword.value = "";
+            settingsMessage.classList.add('hide');
+
+            settingsModal.classList.remove('opacity-0', 'pointer-events-none');
+            settingsModalCard.classList.remove('scale-95');
+            settingsModalCard.classList.add('scale-100');
+        });
+
+        closeSettingsBtn.addEventListener('click', () => {
+            settingsModal.classList.add('opacity-0', 'pointer-events-none');
+            settingsModalCard.classList.remove('scale-100');
+            settingsModalCard.classList.add('scale-95');
+        });
+
+        btnSavePassword.addEventListener('click', async () => {
+            const currentPass = settingsCurrentPassword.value;
+            const newPass = settingsNewPassword.value;
+            const confirmPass = settingsConfirmPassword.value;
+            
+            if (!currentPass || !newPass || !confirmPass) return showSettingsMsg("Please fill in all password fields", true);
+            if (newPass !== confirmPass) return showSettingsMsg("New passwords do not match", true);
+            if (newPass.length < 6) return showSettingsMsg("New password must be at least 6 characters", true);
+
+            btnSavePassword.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
+            try {
+                const credential = EmailAuthProvider.credential(currentUser.email, currentPass);
+                await reauthenticateWithCredential(currentUser, credential);
+                await updatePassword(currentUser, newPass);
+                showSettingsMsg("Password updated successfully!");
+                settingsCurrentPassword.value = "";
+                settingsNewPassword.value = "";
+                settingsConfirmPassword.value = "";
+            } catch(e) {
+                let errorMsg = e.message.replace('Firebase: ', '');
+                if (e.code === 'auth/invalid-login-credentials' || e.code === 'auth/wrong-password' || e.code === 'auth/invalid-credential') {
+                    errorMsg = "Incorrect current password.";
+                }
+                showSettingsMsg(errorMsg, true);
+            } finally {
+                btnSavePassword.innerText = "Change Password";
+            }
+        });
+
         function openAuthModal() {
             authError.classList.add('hide');
-            if (userProfileData.username !== "Guest" && !currentUser?.email) {
-                usernameInput.value = userProfileData.username;
-            } else {
-                usernameInput.value = "";
-            }
+            usernameInput.value = "";
             passwordInput.value = "";
             deletePasswordInput.value = "";
             
@@ -739,18 +938,14 @@
                 }
                 
                 signupBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
-                const dummyEmail = getDummyEmail(username);
+                const directEmail = getDirectEmail(username);
                 
                 try {
-                    await createUserWithEmailAndPassword(auth, dummyEmail, password);
+                    await createUserWithEmailAndPassword(auth, directEmail, password);
                     await saveUserProfile(username);
                     closeAuthModal();
                 } catch (error) {
-                    if (error.code === 'auth/email-already-in-use') {
-                        authError.innerText = "Username already taken! Please choose another or Login.";
-                    } else {
-                        authError.innerText = error.message.replace('Firebase: ', '');
-                    }
+                    authError.innerText = error.code === 'auth/email-already-in-use' ? "Username already taken!" : error.message.replace('Firebase: ', '');
                     authError.classList.remove('hide');
                 } finally {
                     signupBtn.innerText = 'Create Account';
@@ -760,32 +955,17 @@
             loginBtn.addEventListener('click', async () => {
                 const username = usernameInput.value.trim();
                 const password = passwordInput.value;
+                if (!username || !password) return;
                 
-                if (!username || !password) {
-                    authError.innerText = "Please enter both username and password.";
-                    authError.classList.remove('hide');
-                    return;
-                }
-                
-                if (isOffline) {
-                    saveUserProfile(username);
-                    closeAuthModal();
-                    return;
-                }
-
                 loginBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
-                const dummyEmail = getDummyEmail(username);
+                const directEmail = getDirectEmail(username);
 
                 try {
-                    await signInWithEmailAndPassword(auth, dummyEmail, password);
+                    await signInWithEmailAndPassword(auth, directEmail, password);
                     await loadUserProfile();
                     closeAuthModal();
                 } catch (error) {
-                    if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
-                        authError.innerText = "Incorrect username or password.";
-                    } else {
-                        authError.innerText = error.message.replace('Firebase: ', '');
-                    }
+                    authError.innerText = "Incorrect username or password.";
                     authError.classList.remove('hide');
                 } finally {
                     loginBtn.innerText = 'Login';
@@ -798,10 +978,10 @@
                 await signOut(auth);
                 await signInAnonymously(auth);
                 userProfileData.username = "Guest";
+                userStats = {};
                 profileNameDisplay.innerText = "Guest";
                 closeAuthModal();
-                bestStreak = 0;
-                currentStreak = 0;
+                loadStreaks();
                 updateStreakUI();
             }
         });
@@ -821,6 +1001,21 @@
             authError.classList.add('hide');
         });
 
+        async function deleteLeaderboardEntries(docIdStr) {
+            if (isOffline || !db) return;
+            const lbModes = ['time', 'words'];
+            const lbLengths = [15, 30, 60, 120, 10, 25, 50, 100];
+            
+            for (let m of lbModes) {
+                for (let l of lbLengths) {
+                    try {
+                        const ref = doc(db, 'artifacts', appId, 'public', 'data', `leaderboard_${m}_${l}`, docIdStr);
+                        await deleteDoc(ref);
+                    } catch(e) {}
+                }
+            }
+        }
+
         confirmDeleteBtn.addEventListener('click', async () => {
             const password = deletePasswordInput.value;
             if (!password) {
@@ -834,6 +1029,9 @@
                 const credential = EmailAuthProvider.credential(currentUser.email, password);
                 await reauthenticateWithCredential(currentUser, credential);
                 
+                const userDocId = getDocId(userProfileData.username);
+                await deleteLeaderboardEntries(userDocId);
+                
                 if (!isOffline && db) {
                     const profileRef = doc(db, 'artifacts', appId, 'users', currentUser.uid, 'profile', 'data');
                     await deleteDoc(profileRef);
@@ -843,16 +1041,14 @@
                 
                 await signInAnonymously(auth);
                 userProfileData.username = "Guest";
+                userStats = {};
                 profileNameDisplay.innerText = "Guest";
-                bestStreak = 0;
-                currentStreak = 0;
+                loadStreaks();
                 updateStreakUI();
                 closeAuthModal();
                 
             } catch(error) {
-                authError.innerText = (error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') 
-                    ? "Incorrect password. Cannot delete account." 
-                    : error.message.replace('Firebase: ', '');
+                authError.innerText = error.message.replace('Firebase: ', '');
                 authError.classList.remove('hide');
             } finally {
                 confirmDeleteBtn.innerText = 'Confirm Delete';
@@ -865,13 +1061,13 @@
                 viewTest.classList.remove('hide');
                 viewLeaderboard.classList.add('hide');
                 configBar.classList.remove('invisible');
-                navTestBtn.className = "px-3 py-1.5 rounded-md text-xs font-semibold text-[var(--main-color)] bg-[var(--bg-color)] transition-all flex items-center gap-1.5";
+                navTestBtn.className = "px-3 py-1.5 rounded-md text-xs font-semibold text-[var(--main-color)] bg-[var(--bg-color)] transition-all flex items-center gap-1.5 shadow-sm";
                 navLeaderboardBtn.className = "px-3 py-1.5 rounded-md text-xs font-semibold text-[var(--sub-color)] hover:text-[var(--text-color)] transition-all flex items-center gap-1.5";
             } else {
                 viewTest.classList.add('hide');
                 viewLeaderboard.classList.remove('hide');
                 configBar.classList.add('invisible');
-                navLeaderboardBtn.className = "px-3 py-1.5 rounded-md text-xs font-semibold text-[var(--main-color)] bg-[var(--bg-color)] transition-all flex items-center gap-1.5";
+                navLeaderboardBtn.className = "px-3 py-1.5 rounded-md text-xs font-semibold text-[var(--main-color)] bg-[var(--bg-color)] transition-all flex items-center gap-1.5 shadow-sm";
                 navTestBtn.className = "px-3 py-1.5 rounded-md text-xs font-semibold text-[var(--sub-color)] hover:text-[var(--text-color)] transition-all flex items-center gap-1.5";
                 
                 lbMode = mode;
@@ -897,25 +1093,40 @@
         logoBtn.addEventListener('click', () => switchView('test'));
 
         function loadStreaks() {
-            currentStreak = parseInt(localStorage.getItem(`squad_streak_${mode}_${length}`)) || 0;
-            bestStreak = parseInt(localStorage.getItem(`squad_best_${mode}_${length}`)) || 0;
+            const key = `${mode}_${length}`;
+            currentStreak = 0; 
+            
+            let localBest = parseInt(localStorage.getItem(`squad_best_${mode}_${length}`)) || 0;
+
+            if (currentUser && !currentUser.isAnonymous) {
+                bestStreak = (userStats[key] && userStats[key].bestStreak) ? userStats[key].bestStreak : 0;
+                if (localBest > bestStreak) {
+                    bestStreak = localBest;
+                    if (!userStats[key]) userStats[key] = { bestStreak: 0, bestWpm: 0 };
+                    userStats[key].bestStreak = localBest;
+                    updateAccountStats(mode, length, bestStreak, userStats[key].bestWpm);
+                }
+            } else {
+                bestStreak = localBest;
+            }
+            
+            updateStreakUI();
         }
 
         function updateStreakUI(flashing = false, failed = false) {
             if (currentStreak > bestStreak) {
                 bestStreak = currentStreak;
-                localStorage.setItem(`squad_best_${mode}_${length}`, bestStreak);
             }
 
             streakValue.innerText = currentStreak;
             bestStreakValue.innerText = bestStreak;
-            localStorage.setItem(`squad_streak_${mode}_${length}`, currentStreak);
             
-            if (currentStreak > 0) {
-                streakDisplay.classList.add('streak-active');
-            } else {
-                streakDisplay.classList.remove('streak-active');
+            if (!currentUser || currentUser.isAnonymous) {
+                localStorage.setItem(`squad_best_${mode}_${length}`, bestStreak);
             }
+            
+            if (currentStreak > 0) streakDisplay.classList.add('streak-active');
+            else streakDisplay.classList.remove('streak-active');
 
             if (failed) {
                 streakDisplay.classList.add('streak-broken');
@@ -928,24 +1139,19 @@
 
         function getRandomWords(count) {
             const arr = [];
-            for(let i = 0; i < count; i++) {
-                const rand = Math.floor(Math.random() * wordList.length);
-                arr.push(wordList[rand]);
-            }
+            for(let i = 0; i < count; i++) arr.push(wordList[Math.floor(Math.random() * wordList.length)]);
             return arr;
         }
 
         function renderWords() {
             wordsContainer.innerHTML = '';
             wordsContainer.style.top = '0px';
-            
             const wordCount = mode === 'time' ? 300 : length;
             words = getRandomWords(wordCount);
             
             words.forEach((wordText) => {
                 const wordEl = document.createElement('div');
                 wordEl.className = 'word';
-                
                 for(let i = 0; i < wordText.length; i++) {
                     const letterEl = document.createElement('span');
                     letterEl.className = 'letter';
@@ -964,7 +1170,6 @@
         function updateCaretPosition() {
             const wordEl = wordsContainer.children[currentWordIndex];
             if (!wordEl) return;
-            
             let activeLetterIndex = -1;
             const letters = wordEl.children; 
             for(let i = 0; i < letters.length; i++) {
@@ -974,84 +1179,60 @@
                 }
             }
             
-            let targetEl;
-            let appendRight = false;
-            
+            let targetEl, appendRight = false;
             if (activeLetterIndex === -1) {
                 targetEl = letters[letters.length - 1];
                 appendRight = true;
-            } else {
-                targetEl = letters[activeLetterIndex]; 
-            }
+            } else targetEl = letters[activeLetterIndex]; 
 
             if (targetEl) {
                 let leftPos = targetEl.offsetLeft;
                 let topPos = targetEl.offsetTop;
-                
                 if (appendRight) leftPos += targetEl.offsetWidth;
 
                 const lineHeight = 48; 
                 if (topPos > lineHeight) {
-                    const shiftAmount = topPos - lineHeight;
-                    wordsContainer.style.top = `-${shiftAmount}px`;
+                    wordsContainer.style.top = `-${topPos - lineHeight}px`;
                     caret.style.top = `${lineHeight + 8}px`; 
                 } else {
                     wordsContainer.style.top = '0px';
                     caret.style.top = `${topPos + 8}px`; 
                 }
-
                 caret.style.left = `${leftPos}px`;
             }
         }
 
         typingTestDiv.addEventListener('keydown', (e) => {
             if (currentView !== 'test') return;
-
-            if (!hasStarted && e.key.length === 1 && !e.metaKey && !e.ctrlKey) {
-                startTest();
-            }
-
-            if (e.ctrlKey || e.metaKey || e.altKey || ["Tab", "Escape", "Enter", "Shift", "CapsLock", "Alt"].includes(e.key)) {
-                return;
-            }
+            if (!hasStarted && e.key.length === 1 && !e.metaKey && !e.ctrlKey) startTest();
+            if (e.ctrlKey || e.metaKey || e.altKey || ["Tab", "Escape", "Enter", "Shift", "CapsLock", "Alt"].includes(e.key)) return;
 
             e.preventDefault(); 
-
             const currentWordEl = wordsContainer.children[currentWordIndex];
             if (!currentWordEl) return;
-            
             const letters = currentWordEl.children; 
             
             let untypedIndex = -1;
             for(let i = 0; i < letters.length; i++) {
                 if(!letters[i].classList.contains('correct') && !letters[i].classList.contains('incorrect')) {
-                    untypedIndex = i;
-                    break;
+                    untypedIndex = i; break;
                 }
             }
 
             if (e.key === ' ') {
                 if (untypedIndex === 0 && !letters[0].classList.contains('incorrect')) return; 
-                
                 let hasError = false;
                 for (let i = 0; i < letters.length; i++) {
                     const l = letters[i];
                     if (l.classList.contains('incorrect') || (!l.classList.contains('correct') && !l.classList.contains('extra'))) {
-                        hasError = true;
-                        break;
+                        hasError = true; break;
                     }
                 }
                 
-                if (hasError) {
-                    currentWordEl.classList.add('error-underline');
-                    breakStreak();
-                }
+                if (hasError) { currentWordEl.classList.add('error-underline'); breakStreak(); }
                 
                 currentWordIndex++;
-                if (currentWordIndex >= words.length) {
-                    endTest();
-                    return;
-                }
+                if (currentWordIndex >= words.length) { endTest(); return; }
                 updateCaretPosition();
                 
                 if (mode === 'words') {
@@ -1074,12 +1255,8 @@
                 } else {
                     let idxToRemove = untypedIndex === -1 ? letters.length - 1 : untypedIndex - 1;
                     const letterEl = letters[idxToRemove];
-                    
-                    if (letterEl.classList.contains('extra')) {
-                        letterEl.remove();
-                    } else {
-                        letterEl.classList.remove('correct', 'incorrect');
-                    }
+                    if (letterEl.classList.contains('extra')) letterEl.remove();
+                    else letterEl.classList.remove('correct', 'incorrect');
                     updateCaretPosition();
                 }
                 return;
@@ -1124,7 +1301,6 @@
             configBar.style.opacity = '0';
             languageIndicator.style.opacity = '0';
             restartBtnContainer.style.opacity = '0';
-            
             setTimeout(() => {
                 configBar.classList.add('invisible');
                 languageIndicator.classList.add('invisible');
@@ -1133,14 +1309,10 @@
             if (mode === 'time') {
                 timeRemaining = length;
                 liveStats.innerText = timeRemaining;
-                
                 timer = setInterval(() => {
-                    timeRemaining--;
-                    timeElapsed++;
+                    timeRemaining--; timeElapsed++;
                     liveStats.innerText = timeRemaining;
-                    if (timeRemaining <= 0) {
-                        endTest();
-                    }
+                    if (timeRemaining <= 0) endTest();
                 }, 1000);
             } else {
                 liveStats.innerText = `0/${length}`;
@@ -1157,32 +1329,22 @@
             resultsScreen.classList.add('hide');
             testContainer.classList.remove('hide');
             liveStats.classList.remove('hide');
-            
             configBar.classList.remove('invisible');
             configBar.style.opacity = '1';
-            
             languageIndicator.classList.remove('invisible');
             languageIndicator.style.opacity = '1';
-            
             restartBtnContainer.style.opacity = '1';
 
-            if (mode === 'time') {
-                liveStats.innerText = length;
-            } else {
-                liveStats.innerText = `0/${length}`;
-            }
+            if (mode === 'time') liveStats.innerText = length;
+            else liveStats.innerText = `0/${length}`;
 
             renderWords();
-            
-            setTimeout(() => {
-                if (currentView === 'test') typingTestDiv.focus();
-            }, 10);
+            setTimeout(() => { if (currentView === 'test') typingTestDiv.focus(); }, 10);
         }
 
-        function endTest() {
+        async function endTest() {
             clearInterval(timer);
             hasStarted = false;
-            
             if (timeElapsed === 0) timeElapsed = 1; 
             
             for(let i=0; i<currentWordIndex; i++) {
@@ -1202,22 +1364,14 @@
             const wpm = Math.round((correctChars / 5) / (timeElapsed / 60));
 
             let meetsSpeedRatio = false;
-            if (mode === 'time') {
-                const minCharsRequired = (length / 3) * 5;
-                meetsSpeedRatio = correctChars >= minCharsRequired;
-            } else {
-                const maxTimeAllowed = length * 3;
-                meetsSpeedRatio = timeElapsed <= maxTimeAllowed;
-            }
+            if (mode === 'time') meetsSpeedRatio = correctChars >= ((length / 3) * 5);
+            else meetsSpeedRatio = timeElapsed <= (length * 3);
 
             if (isPerfectTest) {
                 if (totalAttempted > 0 && accuracy === 100 && meetsSpeedRatio) {
-                    currentStreak++;
-                    updateStreakUI(true, false); 
+                    currentStreak++; updateStreakUI(true, false); 
                 } else {
-                    isPerfectTest = false;
-                    currentStreak = 0;
-                    updateStreakUI(false, true); 
+                    isPerfectTest = false; currentStreak = 0; updateStreakUI(false, true); 
                 }
             }
 
@@ -1227,11 +1381,8 @@
             document.getElementById('result-chars').innerText = `${correctChars}/${incorrectChars}/${extraChars}/${missedChars}`;
             document.getElementById('result-time').innerText = `${timeElapsed}s`;
             
-            if(isPerfectTest && totalAttempted > 0) {
-                document.getElementById('result-streak').innerHTML = `<span style="color: var(--main-color)">+1 Perfect</span> (${currentStreak})`;
-            } else {
-                document.getElementById('result-streak').innerHTML = `Broken <span class="text-sm" style="color: var(--sub-color)">(0)</span>`;
-            }
+            if(isPerfectTest && totalAttempted > 0) document.getElementById('result-streak').innerHTML = `<span style="color: var(--main-color)">+1 Perfect</span> (${currentStreak})`;
+            else document.getElementById('result-streak').innerHTML = `Broken <span class="text-sm" style="color: var(--sub-color)">(0)</span>`;
             document.getElementById('result-best-streak').innerText = bestStreak;
 
             testContainer.classList.add('hide');
@@ -1239,71 +1390,60 @@
             configBar.classList.add('invisible');
             languageIndicator.classList.add('invisible');
             restartBtnContainer.style.opacity = '0';
-            
             resultsScreen.classList.remove('hide');
             document.getElementById('next-test-btn').focus();
 
-            // Fire off sync with local logic that maintains MAX wpm/streak limits
-            syncScoreToCloud(bestStreak, wpm);
+            await updateAccountStats(mode, length, bestStreak, wpm);
         }
 
-        async function syncScoreToCloud(scoreStreak, wpm) {
-            const name = userProfileData.username || "Guest";
-            saveLocalScore(scoreStreak, wpm, name);
+        async function updateAccountStats(statMode, statLength, localBestStreak, wpm) {
+            const key = `${statMode}_${statLength}`;
+            
+            if (!currentUser || currentUser.isAnonymous) {
+                saveLocalScore(statMode, statLength, localBestStreak, wpm, userProfileData.username || "Guest");
+                return;
+            }
 
-            if (isOffline || !currentUser || !db || (scoreStreak === 0 && wpm === 0)) return;
-            if (currentUser.isAnonymous && name === "Guest") return;
+            if (!userStats[key]) userStats[key] = { bestStreak: 0, bestWpm: 0 };
 
-            try {
-                // FIXED: We now use a sanitized, exact document ID for the given username.
-                // This eliminates the bug of creating duplicate records when a user's local auth session changed.
-                const docId = name.toLowerCase().replace(/[^a-z0-9]/g, '') || 'anonymous';
-                
-                // RULE 1 Strict pathing adherence for public data
-                const userScoreRef = doc(db, 'artifacts', appId, 'public', 'data', `leaderboard_${mode}_${length}`, docId);
-                
-                // Fetch the existing document to perform a robust merge
-                const snap = await getDoc(userScoreRef);
-                let cloudStreak = 0;
-                let cloudWpm = 0;
-                
-                if (snap.exists()) {
-                    const data = snap.data();
-                    cloudStreak = data.streak || 0;
-                    cloudWpm = data.wpm || 0;
-                }
-                
-                // Keep whichever was higher: The incoming stats, or the old cloud stats
-                const newStreak = Math.max(scoreStreak, cloudStreak);
-                const newWpm = Math.max(wpm, cloudWpm);
-                
-                await setDoc(userScoreRef, {
-                    username: name,
-                    streak: newStreak,
-                    wpm: newWpm,  // The new "Best WPM of all time" logic
-                    updatedAt: Date.now(),
-                    uid: currentUser.uid
-                }, { merge: true });
-                
-            } catch(e) {
-                console.warn("Could not sync score to cloud", e);
+            if (localBestStreak > userStats[key].bestStreak) userStats[key].bestStreak = localBestStreak;
+            if (wpm > userStats[key].bestWpm) userStats[key].bestWpm = wpm;
+
+            if (!isOffline && db) {
+                try {
+                    const profileRef = doc(db, 'artifacts', appId, 'users', currentUser.uid, 'profile', 'data');
+                    await setDoc(profileRef, { stats: userStats }, { merge: true });
+                    await syncScoreToCloudForMode(statMode, statLength, userStats[key].bestStreak, userStats[key].bestWpm, userProfileData.username);
+                } catch(e) {}
             }
         }
 
-        function saveLocalScore(scoreStreak, wpm, name) {
+        async function syncScoreToCloudForMode(syncMode, syncLength, scoreStreak, scoreWpm, username) {
+            if (isOffline || !currentUser || !db || (scoreStreak === 0 && scoreWpm === 0)) return;
+            try {
+                const docId = getDocId(username);
+                const userScoreRef = doc(db, 'artifacts', appId, 'public', 'data', `leaderboard_${syncMode}_${syncLength}`, docId);
+                await setDoc(userScoreRef, {
+                    username: username,
+                    streak: scoreStreak,
+                    wpm: scoreWpm,
+                    updatedAt: Date.now(),
+                    uid: currentUser.uid
+                }, { merge: true });
+            } catch(e) {}
+        }
+
+        function saveLocalScore(lMode, lLength, scoreStreak, wpm, name) {
             const localData = JSON.parse(localStorage.getItem('monkeytype_local_lb') || '{}');
-            const key = `${mode}_${length}`;
+            const key = `${lMode}_${lLength}`;
             if (!localData[key]) localData[key] = [];
             
             const existingIdx = localData[key].findIndex(i => i.username === name);
             if (existingIdx >= 0) {
-                // Keep max bounds even in local storage
                 localData[key][existingIdx].streak = Math.max(localData[key][existingIdx].streak || 0, scoreStreak);
                 localData[key][existingIdx].wpm = Math.max(localData[key][existingIdx].wpm || 0, wpm);
-            } else {
-                localData[key].push({ username: name, streak: scoreStreak, wpm: wpm });
-            }
-            // Sort by streak highest, then WPM highest
+            } else localData[key].push({ username: name, streak: scoreStreak, wpm: wpm });
+            
             localData[key].sort((a,b) => b.streak - a.streak || (b.wpm || 0) - (a.wpm || 0));
             localStorage.setItem('monkeytype_local_lb', JSON.stringify(localData));
         }
@@ -1312,17 +1452,16 @@
             lbCategoryTitle.innerText = `Top Streaks for ${lbMode} ${lbLength}`;
             
             if (isOffline || !db) {
-                lbStatus.innerText = "Local Mode (Scores visible only to you)";
-                lbStatus.className = "text-xs text-amber-500 font-mono bg-[var(--sub-alt-color)] px-3 py-1.5 rounded-lg border border-neutral-800";
+                lbStatus.innerText = "Local Mode";
+                lbStatus.className = "text-xs text-amber-500 font-mono bg-[var(--sub-alt-color)] px-3 py-1.5 rounded-lg border border-theme";
                 renderLocalLeaderboard();
                 return;
             }
 
-            lbStatus.innerText = "Syncing live...";
-            lbStatus.className = "text-xs text-[var(--main-color)] font-mono bg-[var(--sub-alt-color)] px-3 py-1.5 rounded-lg border border-neutral-800";
+            lbStatus.innerText = "Syncing...";
+            lbStatus.className = "text-xs text-[var(--main-color)] font-mono bg-[var(--sub-alt-color)] px-3 py-1.5 rounded-lg border border-theme";
 
             try {
-                // RULE 2 strict compliance: Using a simple query with no limits or orderBy bounds, handling in JS memory
                 const lbRef = collection(db, 'artifacts', appId, 'public', 'data', `leaderboard_${lbMode}_${lbLength}`);
                 const querySnap = await getDocs(lbRef);
 
@@ -1334,23 +1473,21 @@
                     }
                 });
                 
-                // Custom Memory Sort Logic (High Streak -> High WPM)
                 results.sort((a, b) => {
                     if (b.streak !== a.streak) return b.streak - a.streak;
                     return (b.wpm || 0) - (a.wpm || 0);
                 });
                 
-                // Limit strictly to Top 25
                 results = results.slice(0, 25);
-
                 let hasRecords = results.length > 0;
                 let html = '';
                 
                 results.forEach((data, idx) => {
                     const rank = idx + 1;
                     const isSelf = currentUser && (data.uid === currentUser.uid || data.username === userProfileData.username);
+                    
                     html += `
-                        <div class="grid grid-cols-12 gap-2 px-6 py-3 text-xs items-center ${isSelf ? 'bg-cyan-950/30 text-[var(--main-color)] font-bold' : 'text-[var(--text-color)] hover:bg-neutral-800/40'}">
+                        <div class="grid grid-cols-12 gap-2 px-6 py-3 text-xs items-center ${isSelf ? 'border-l-4 border-[var(--main-color)] bg-[var(--sub-alt-color)] text-[var(--main-color)] font-bold shadow-md' : 'text-[var(--text-color)] hover:bg-[var(--border-color)] transition-colors border-l-4 border-transparent'}">
                             <div class="col-span-1 text-center font-mono ${rank <= 3 ? 'text-[var(--main-color)] font-bold' : 'text-[var(--sub-color)]'}">
                                 ${rank === 1 ? '<i class="fa-solid fa-crown text-amber-400"></i>' : `#${rank}`}
                             </div>
@@ -1368,34 +1505,19 @@
                     `;
                 });
 
-                if (!hasRecords) {
-                    leaderboardList.innerHTML = `
-                        <div class="p-8 text-center text-[var(--sub-color)] text-sm">
-                            No streaks recorded yet for this mode. Complete a test to claim rank #1!
-                        </div>
-                    `;
-                } else {
-                    leaderboardList.innerHTML = html;
-                }
+                if (!hasRecords) leaderboardList.innerHTML = `<div class="p-8 text-center text-[var(--sub-color)] text-sm">No streaks recorded yet for this mode.</div>`;
+                else leaderboardList.innerHTML = html;
                 lbStatus.innerText = "Live Sync";
-            } catch(e) {
-                renderLocalLeaderboard();
-            }
+            } catch(e) { renderLocalLeaderboard(); }
         }
 
         function renderLocalLeaderboard() {
             const localData = JSON.parse(localStorage.getItem('monkeytype_local_lb') || '{}');
-            const key = `${lbMode}_${lbLength}`;
-            const items = localData[key] || [];
-            
+            const items = localData[`${lbMode}_${lbLength}`] || [];
             const filteredItems = items.filter(item => item.username && item.username.toLowerCase() !== 'testuser');
 
             if (filteredItems.length === 0) {
-                leaderboardList.innerHTML = `
-                    <div class="p-8 text-center text-[var(--sub-color)] text-sm">
-                        No streaks recorded yet for this mode. Complete a test to claim rank #1!
-                    </div>
-                `;
+                leaderboardList.innerHTML = `<div class="p-8 text-center text-[var(--sub-color)] text-sm">No streaks recorded yet for this mode.</div>`;
                 return;
             }
 
@@ -1404,7 +1526,7 @@
                 const rank = idx + 1;
                 const isSelf = item.username === userProfileData.username;
                 html += `
-                    <div class="grid grid-cols-12 gap-2 px-6 py-3 text-xs items-center ${isSelf ? 'bg-cyan-950/30 text-[var(--main-color)] font-bold' : 'text-[var(--text-color)] hover:bg-neutral-800/40'}">
+                    <div class="grid grid-cols-12 gap-2 px-6 py-3 text-xs items-center ${isSelf ? 'border-l-4 border-[var(--main-color)] bg-[var(--sub-alt-color)] text-[var(--main-color)] font-bold shadow-md' : 'text-[var(--text-color)] hover:bg-[var(--border-color)] transition-colors border-l-4 border-transparent'}">
                         <div class="col-span-1 text-center font-mono ${rank <= 3 ? 'text-[var(--main-color)] font-bold' : 'text-[var(--sub-color)]'}">
                             ${rank === 1 ? '<i class="fa-solid fa-crown text-amber-400"></i>' : `#${rank}`}
                         </div>
@@ -1427,7 +1549,6 @@
         function setupConfigListeners() {
             const modeItems = document.querySelectorAll('.config-item[data-mode]');
             const lengthContainer = document.getElementById('config-lengths');
-            
             modeItems.forEach(item => {
                 item.addEventListener('click', (e) => {
                     modeItems.forEach(i => i.classList.remove('active'));
@@ -1439,16 +1560,13 @@
                     lengths.forEach((val, idx) => {
                         const span = document.createElement('span');
                         span.className = `config-item ${idx === 1 ? 'active' : ''}`;
-                        span.dataset.val = val;
-                        span.innerText = val;
+                        span.dataset.val = val; span.innerText = val;
                         span.addEventListener('click', lengthClickHandler);
                         lengthContainer.appendChild(span);
                     });
                     
                     length = lengths[1];
-                    loadStreaks(); 
-                    updateStreakUI();
-                    resetTest();
+                    loadStreaks(); resetTest();
                 });
             });
 
@@ -1456,36 +1574,24 @@
                 document.querySelectorAll('#config-lengths .config-item').forEach(i => i.classList.remove('active'));
                 e.currentTarget.classList.add('active');
                 length = parseInt(e.currentTarget.dataset.val);
-                loadStreaks(); 
-                updateStreakUI();
-                resetTest();
+                loadStreaks(); resetTest();
             }
 
-            document.querySelectorAll('#config-lengths .config-item[data-val]').forEach(i => {
-                i.addEventListener('click', lengthClickHandler);
-            });
+            document.querySelectorAll('#config-lengths .config-item[data-val]').forEach(i => i.addEventListener('click', lengthClickHandler));
         }
 
         function renderLbLengths() {
             lbLengthTabs.innerHTML = '';
             const lengths = lbMode === 'time' ? [15, 30, 60, 120] : [10, 25, 50, 100];
-            
-            if (!lengths.includes(lbLength)) {
-                lbLength = lengths[1]; 
-            }
-
+            if (!lengths.includes(lbLength)) lbLength = lengths[1]; 
             lengths.forEach((val) => {
                 const btn = document.createElement('button');
                 const isActive = val === lbLength;
-                
-                btn.className = `px-3 py-1.5 rounded-md transition-all text-xs font-semibold ${isActive ? 'bg-[var(--main-color)] text-black border border-[var(--main-color)] shadow-sm' : 'bg-[var(--bg-color)] text-[var(--sub-color)] hover:text-[var(--text-color)] border border-transparent'}`;
-                btn.innerText = val;
-                btn.dataset.val = val;
-                
+                btn.className = `px-3 py-1.5 rounded-md transition-all text-xs font-semibold border ${isActive ? 'bg-[var(--main-color)] text-black border-[var(--main-color)] shadow-sm' : 'bg-[var(--bg-color)] text-[var(--sub-color)] hover:text-[var(--text-color)] border-transparent'}`;
+                btn.innerText = val; btn.dataset.val = val;
                 btn.addEventListener('click', (e) => {
                     lbLength = parseInt(e.currentTarget.dataset.val);
-                    renderLbLengths();
-                    fetchLeaderboard();
+                    renderLbLengths(); fetchLeaderboard();
                 });
                 lbLengthTabs.appendChild(btn);
             });
@@ -1497,21 +1603,16 @@
                     b.classList.remove('active', 'text-[var(--main-color)]', 'bg-[var(--sub-alt-color)]');
                     b.classList.add('text-[var(--sub-color)]');
                 });
-                
-                const target = e.currentTarget;
-                target.classList.add('active', 'text-[var(--main-color)]', 'bg-[var(--sub-alt-color)]');
-                target.classList.remove('text-[var(--sub-color)]');
-                
-                lbMode = target.dataset.mode;
-                renderLbLengths();
-                fetchLeaderboard();
+                e.currentTarget.classList.add('active', 'text-[var(--main-color)]', 'bg-[var(--sub-alt-color)]');
+                e.currentTarget.classList.remove('text-[var(--sub-color)]');
+                lbMode = e.currentTarget.dataset.mode;
+                renderLbLengths(); fetchLeaderboard();
             });
         });
 
         function initApp() {
+            loadPreferences();
             initAuth();
-            loadStreaks();
-            updateStreakUI();
             setupConfigListeners();
             renderLbLengths();
             
@@ -1524,21 +1625,10 @@
             
             document.addEventListener('keydown', (e) => {
                 if (currentView !== 'test') return;
-                
-                if (document.activeElement && (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA')) {
-                    return;
-                }
-
-                if (document.activeElement !== typingTestDiv && e.key.length === 1 && !e.ctrlKey && !e.metaKey) {
-                    typingTestDiv.focus();
-                }
-                if (e.key === 'Tab') {
-                    e.preventDefault(); 
-                    resetTest();
-                }
-                if (e.key === ' ' && (e.target === document.body || e.target.tagName === 'BUTTON' || e.target.tagName === 'A')) {
-                    e.preventDefault();
-                }
+                if (document.activeElement && (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA')) return;
+                if (document.activeElement !== typingTestDiv && e.key.length === 1 && !e.ctrlKey && !e.metaKey) typingTestDiv.focus();
+                if (e.key === 'Tab') { e.preventDefault(); resetTest(); }
+                if (e.key === ' ' && (e.target === document.body || e.target.tagName === 'BUTTON' || e.target.tagName === 'A')) e.preventDefault();
             });
 
             restartBtn.addEventListener('click', resetTest);
