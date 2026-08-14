@@ -130,14 +130,17 @@ function updateCaretPosition() {
         const lineHeightStr = compStyle.getPropertyValue('--test-line-height').trim();
         const lineHeight = parseInt(lineHeightStr.replace('px', '')) || 48;
 
+        let caretTop;
         if (topPos > lineHeight) {
             wordsContainer.style.top = `-${topPos - lineHeight}px`;
-            caret.style.top = `${lineHeight + (lineHeight * 0.1)}px`;
+            caretTop = lineHeight + (lineHeight * 0.1);
         } else {
             wordsContainer.style.top = '0px';
-            caret.style.top = `${topPos + (lineHeight * 0.1)}px`;
+            caretTop = topPos + (lineHeight * 0.1);
         }
-        caret.style.left = `${leftPos}px`;
+        
+        // Use hardware-accelerated transform instead of top/left
+        caret.style.transform = `translate(${leftPos}px, ${caretTop}px)`;
     }
 }
 
@@ -446,4 +449,15 @@ if (typingTestDiv) {
 window.addEventListener('DOMContentLoaded', () => {
     if (typeof window.setupConfigListeners === 'function') window.setupConfigListeners();
     if (typeof window.resetTest === 'function') window.resetTest();
+});
+
+window.addEventListener('mousemove', () => {
+    document.body.classList.remove('hide-mouse');
+});
+
+typingTestDiv.addEventListener('keydown', (e) => {
+    // Only hide the cursor if we are actually typing in the test
+    if (state.currentView === 'test' && !['Shift', 'Alt', 'Control', 'Meta'].includes(e.key)) {
+        document.body.classList.add('hide-mouse');
+    }
 });
