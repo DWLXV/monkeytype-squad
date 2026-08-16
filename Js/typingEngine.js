@@ -1,6 +1,5 @@
 import { db, auth, isOffline, appId } from './firebase.js';
-import { doc, setDoc } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js';
-
+import { doc, setDoc, getDoc } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js';
 const state = window.__appState || (window.__appState = {
     currentUser: null,
     userProfileData: { username: 'Loading...' },
@@ -210,22 +209,44 @@ async function updateAccountStats(statMode, statLength, localBestStreak, wpm) {
     const key = `${statMode}_${statLength}`;
     if (!state.currentUser) return;
 
-    if (!state.userStats[key]) state.userStats[key] = { bestStreak: 0, bestWpm: 0 };
-    if (localBestStreak > state.userStats[key].bestStreak) state.userStats[key].bestStreak = localBestStreak;
-    if (wpm > state.userStats[key].bestWpm) state.userStats[key].bestWpm = wpm;
-
     if (!isOffline && db) {
         try {
             const profileRef = doc(db, 'artifacts', appId, 'users', state.currentUser.uid, 'profile', 'data');
+            
+            // 1. Fetch the absolute latest truth from the database
+            const snap = await getDoc(profileRef);
+            let dbStats = {};
+            if (snap.exists() && snap.data().stats) {
+                dbStats = snap.data().stats;
+            }
+
+            // 2. Ensure objects exist to prevent undefined errors
+            if (!state.userStats[key]) state.userStats[key] = { bestStreak: 0, bestWpm: 0 };
+            if (!dbStats[key]) dbStats[key] = { bestStreak: 0, bestWpm: 0 };
+
+            // 3. Calculate the true highest scores between local data, database data, and the new score
+            const trueBestStreak = Math.max(localBestStreak, dbStats[key].bestStreak, state.userStats[key].bestStreak);
+            const trueBestWpm = Math.max(wpm, dbStats[key].bestWpm, state.userStats[key].bestWpm);
+
+            // 4. Set local state to the true highest scores
+            state.userStats[key].bestStreak = trueBestStreak;
+            state.userStats[key].bestWpm = trueBestWpm;
+
+            // 5. Save the guaranteed highest scores back to the database
             await setDoc(profileRef, { stats: state.userStats }, { merge: true });
 
             const userScoreRef = doc(db, 'artifacts', appId, 'public', 'data', `leaderboard_${statMode}_${statLength}`, state.currentUser.uid);
-            await setDoc(userScoreRef, { username: state.userProfileData.username, streak: state.userStats[key].bestStreak, wpm: state.userStats[key].bestWpm, updatedAt: Date.now(), uid: state.currentUser.uid }, { merge: true });
+            await setDoc(userScoreRef, { username: state.userProfileData.username, streak: trueBestStreak, wpm: trueBestWpm, updatedAt: Date.now(), uid: state.currentUser.uid }, { merge: true });
 
             if (typeof window.syncUserRegistry === 'function') await window.syncUserRegistry();
         } catch (e) {
             console.warn('Could not sync typing stats:', e);
         }
+    } else {
+        // Offline fallback logic
+        if (!state.userStats[key]) state.userStats[key] = { bestStreak: 0, bestWpm: 0 };
+        if (localBestStreak > state.userStats[key].bestStreak) state.userStats[key].bestStreak = localBestStreak;
+        if (wpm > state.userStats[key].bestWpm) state.userStats[key].bestWpm = wpm;
     }
 }
 
@@ -280,7 +301,9 @@ async function endTest() {
     languageIndicator.classList.add('invisible');
     restartBtnContainer.style.opacity = '0';
     resultsScreen.classList.remove('hide');
-    document.getElementById('next-test-btn').focus();
+    
+    // Unfocus everything to prevent accidental space/enter clicks
+    if (document.activeElement) document.activeElement.blur();
 
     await updateAccountStats(state.mode, state.length, bestStreak, wpm);
 }
@@ -459,5 +482,19 @@ typingTestDiv.addEventListener('keydown', (e) => {
     // Only hide the cursor if we are actually typing in the test
     if (state.currentView === 'test' && !['Shift', 'Alt', 'Control', 'Meta'].includes(e.key)) {
         document.body.classList.add('hide-mouse');
+    }
+});
+// Enforce the "Tab + Enter" flow for restarting tests
+window.addEventListener('keydown', (e) => {
+    if (state.currentView === 'test' && e.key === 'Tab') {
+        e.preventDefault(); // Stop the default browser tab behavior
+        
+        if (!resultsScreen.classList.contains('hide')) {
+            // If the test is finished, Tab focuses the Next Test button
+            document.getElementById('next-test-btn').focus();
+        } else {
+            // If currently typing, Tab focuses the Quick Restart button
+            document.getElementById('restart-btn').focus();
+        }
     }
 });
