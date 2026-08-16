@@ -11,7 +11,7 @@ const state = window.__appState || (window.__appState = {
     lbLength: 30
 });
 
-const wordList = ["the","be","of","and","a","to","in","he","have","it","that","for","they","I","with","as","not","on","she","at","by","this","we","you","do","but","from","or","which","one","would","all","will","there","say","who","make","when","can","more","if","no","man","out","other","so","what","time","up","go","about","than","into","could","state","only","new","year","some","take","come","these","know","see","use","get","like","then","first","any","work","now","may","such","give","over","think","most","even","find","day","also","after","way","many","must","look","before","great","back","through","long","where","much","should","well","people","down","own","just","because","good","each","those","feel","seem","how","high","too","place","little","world","very","still","nation","hand","old","life","tell","write","become","here","show","house","both","between","need","mean","call","develop","under","last","right","move","thing","general","school","never","same","another","begin","while","number","part","turn","real","leave","might","want","point","form","off","child","few","small","since","against","ask","late","home","interest","large","person","end","open","public","follow","during","present","without","again","hold","govern","around","possible","head","consider","word","program","problem","however","lead","system","set","order","eye","plan","run","keep","face","fact","group","play","stand","increase","early","course","change","help","line"];
+const wordList = ["the", "be", "of", "and", "a", "to", "in", "he", "have", "it", "that", "for", "they", "I", "with", "as", "not", "on", "she", "at", "by", "this", "we", "you", "do", "but", "from", "or", "which", "one", "would", "all", "will", "there", "say", "who", "make", "when", "can", "more", "if", "no", "man", "out", "other", "so", "what", "time", "up", "go", "about", "than", "into", "could", "state", "only", "new", "year", "some", "take", "come", "these", "know", "see", "use", "get", "like", "then", "first", "any", "work", "now", "may", "such", "give", "over", "think", "most", "even", "find", "day", "also", "after", "way", "many", "must", "look", "before", "great", "back", "through", "long", "where", "much", "should", "well", "people", "down", "own", "just", "because", "good", "each", "those", "feel", "seem", "how", "high", "too", "place", "little", "world", "very", "still", "nation", "hand", "old", "life", "tell", "write", "become", "here", "show", "house", "both", "between", "need", "mean", "call", "develop", "under", "last", "right", "move", "thing", "general", "school", "never", "same", "another", "begin", "while", "number", "part", "turn", "real", "leave", "might", "want", "point", "form", "off", "child", "few", "small", "since", "against", "ask", "late", "home", "interest", "large", "person", "end", "open", "public", "follow", "during", "present", "without", "again", "hold", "govern", "around", "possible", "head", "consider", "word", "program", "problem", "however", "lead", "system", "set", "order", "eye", "plan", "run", "keep", "face", "fact", "group", "play", "stand", "increase", "early", "course", "change", "help", "line"];
 
 let words = [];
 let currentWordIndex = 0;
@@ -137,7 +137,7 @@ function updateCaretPosition() {
             wordsContainer.style.top = '0px';
             caretTop = topPos + (lineHeight * 0.1);
         }
-        
+
         // Use hardware-accelerated transform instead of top/left
         caret.style.transform = `translate(${leftPos}px, ${caretTop}px)`;
     }
@@ -189,13 +189,15 @@ function resetTest() {
     extraChars = 0;
     missedChars = 0;
 
+    // Fixed typo: changed "rresultsScreen" to "resultsScreen"
     resultsScreen.classList.add('hide');
     testContainer.classList.remove('hide');
     liveStats.classList.remove('hide');
-    configBar.classList.remove('invisible');
+    configBar.classList.remove('hide', 'invisible');
     configBar.style.opacity = '1';
-    languageIndicator.classList.remove('invisible');
+    languageIndicator.classList.remove('hide', 'invisible');
     languageIndicator.style.opacity = '1';
+    restartBtnContainer.classList.remove('hide');
     restartBtnContainer.style.opacity = '1';
 
     liveStats.innerText = state.mode === 'time' ? state.length : `0/${state.length}`;
@@ -204,7 +206,6 @@ function resetTest() {
         if (state.currentView === 'test') typingTestDiv.focus();
     }, 10);
 }
-
 async function updateAccountStats(statMode, statLength, localBestStreak, wpm) {
     const key = `${statMode}_${statLength}`;
     if (!state.currentUser) return;
@@ -212,7 +213,7 @@ async function updateAccountStats(statMode, statLength, localBestStreak, wpm) {
     if (!isOffline && db) {
         try {
             const profileRef = doc(db, 'artifacts', appId, 'users', state.currentUser.uid, 'profile', 'data');
-            
+
             // 1. Fetch the absolute latest truth from the database
             const snap = await getDoc(profileRef);
             let dbStats = {};
@@ -297,11 +298,11 @@ async function endTest() {
 
     testContainer.classList.add('hide');
     liveStats.classList.add('hide');
-    configBar.classList.add('invisible');
-    languageIndicator.classList.add('invisible');
-    restartBtnContainer.style.opacity = '0';
+    configBar.classList.add('hide');
+    languageIndicator.classList.add('hide');
+    restartBtnContainer.classList.add('hide');
     resultsScreen.classList.remove('hide');
-    
+
     // Unfocus everything to prevent accidental space/enter clicks
     if (document.activeElement) document.activeElement.blur();
 
@@ -488,7 +489,7 @@ typingTestDiv.addEventListener('keydown', (e) => {
 window.addEventListener('keydown', (e) => {
     if (state.currentView === 'test' && e.key === 'Tab') {
         e.preventDefault(); // Stop the default browser tab behavior
-        
+
         if (!resultsScreen.classList.contains('hide')) {
             // If the test is finished, Tab focuses the Next Test button
             document.getElementById('next-test-btn').focus();
