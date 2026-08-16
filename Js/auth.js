@@ -1,5 +1,5 @@
 import { db, auth, isOffline, appId } from './firebase.js';
-import { doc, getDoc, setDoc, deleteDoc } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js';
+import { doc, getDoc, setDoc, deleteDoc, onSnapshot } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js'; 
 import { onAuthStateChanged, signOut, createUserWithEmailAndPassword, signInWithEmailAndPassword, reauthenticateWithCredential, updatePassword, EmailAuthProvider, deleteUser, updateEmail } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js';
 
 
@@ -100,16 +100,23 @@ async function loadUserProfile() {
     if (isOffline || !state.currentUser || !db) return;
     try {
         const profileRef = doc(db, 'artifacts', appId, 'users', state.currentUser.uid, 'profile', 'data');
-        const snap = await getDoc(profileRef);
-        if (snap.exists()) {
-            const data = snap.data();
-            if (data.username) state.userProfileData.username = data.username;
-            if (data.stats) state.userStats = data.stats;
-        }
+        
+        // Use a real-time listener instead of a one-time fetch
+        onSnapshot(profileRef, (snap) => {
+            if (snap.exists()) {
+                const data = snap.data();
+                if (data.username) state.userProfileData.username = data.username;
+                if (data.stats) {
+                    state.userStats = data.stats;
+                    // Refresh the UI streak if the user is currently on the test view
+                    if (typeof window.loadStreaks === 'function') window.loadStreaks();
+                }
+                if (profileNameDisplay) profileNameDisplay.innerText = state.userProfileData.username || 'Player';
+            }
+        });
     } catch (e) {
         console.warn('User profile could not be loaded:', e);
     }
-    if (profileNameDisplay) profileNameDisplay.innerText = state.userProfileData.username || 'Player';
 }
 
 async function syncUserRegistry() {
@@ -390,20 +397,20 @@ if (btnSaveUsername) btnSaveUsername.addEventListener('click', async () => {
                             await setDoc(ref, { username: newName }, { merge: true });
                         } catch (e) {
                             console.error(`Failed to update leaderboard doc for ${modeName}_${item}`, e);
-                        } 
+                        }
                     }
                 }
             }
         }
 
-        settingsUsernamePassword.value = ''; 
+        settingsUsernamePassword.value = '';
         showSettingsMsg('Username updated successfully!');
         if (state.currentView === 'leaderboard' && typeof window.fetchLeaderboard === 'function') window.fetchLeaderboard();
 
     } catch (e) {
         console.error(e);
         let errorMsg = 'Failed to update username. Try re-logging in.';
-        
+
         // This is the correct placement for the v11 password error checks
         if (e.code === 'auth/invalid-login-credentials' || e.code === 'auth/wrong-password' || e.code === 'auth/invalid-credential') {
             errorMsg = 'Incorrect password.';
