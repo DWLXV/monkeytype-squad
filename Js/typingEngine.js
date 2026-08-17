@@ -42,15 +42,44 @@ const languageIndicator = document.getElementById('language-indicator');
 const restartBtnContainer = document.getElementById('restart-btn-container');
 const testContainer = document.getElementById('typing-test-container');
 const resultsScreen = document.getElementById('results-screen');
+async function syncCurrentStreak() {
+    const key = `${state.mode}_${state.length}`;
+    if (!state.userStats[key]) state.userStats[key] = { bestStreak: 0, bestWpm: 0 };
 
+    // 1. Update the state
+    state.userStats[key].currentStreak = currentStreak;
+
+    // 2. Save locally so it survives page refreshes immediately
+    localStorage.setItem(`streak_current_${key}`, currentStreak);
+
+    // 3. Save to Firebase if the user is logged in
+    if (state.currentUser && !isOffline && db) {
+        try {
+            const profileRef = doc(db, 'artifacts', appId, 'users', state.currentUser.uid, 'profile', 'data');
+            await setDoc(profileRef, { stats: state.userStats }, { merge: true });
+        } catch (e) {
+            console.warn('Could not sync current streak:', e);
+        }
+    }
+}
 function loadStreaks() {
     const key = `${state.mode}_${state.length}`;
-    currentStreak = 0;
-    if (state.currentUser) {
-        bestStreak = (state.userStats[key] && state.userStats[key].bestStreak) ? state.userStats[key].bestStreak : 0;
-    } else {
-        bestStreak = 0;
+    
+    // Ensure the stats object exists for this mode
+    if (!state.userStats[key]) {
+        state.userStats[key] = { bestStreak: 0, bestWpm: 0 };
     }
+    
+    bestStreak = state.userStats[key].bestStreak || 0;
+
+    // Load current streak from Firebase state or fallback to Local Storage
+    if (state.currentUser && state.userStats[key].currentStreak !== undefined) {
+        currentStreak = state.userStats[key].currentStreak;
+    } else {
+        const localStreak = localStorage.getItem(`streak_current_${key}`);
+        currentStreak = localStreak ? parseInt(localStreak) : 0;
+    }
+    
     updateStreakUI();
 }
 
@@ -148,6 +177,7 @@ function breakStreak() {
         isPerfectTest = false;
         currentStreak = 0;
         updateStreakUI(false, true);
+        syncCurrentStreak(); // Save the broken streak instantly
     }
 }
 
@@ -282,6 +312,9 @@ async function endTest() {
             updateStreakUI(false, true);
         }
     }
+
+    // Save the updated streak status
+    syncCurrentStreak(); 
 
     document.getElementById('result-wpm').innerText = wpm;
     document.getElementById('result-acc').innerText = `${Math.round(accuracy)}%`;
