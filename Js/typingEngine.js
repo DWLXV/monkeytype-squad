@@ -44,7 +44,11 @@ const testContainer = document.getElementById('typing-test-container');
 const resultsScreen = document.getElementById('results-screen');
 async function syncCurrentStreak() {
     const key = `${state.mode}_${state.length}`;
-    if (!state.userStats[key]) state.userStats[key] = { bestStreak: 0, bestWpm: 0 };
+    
+    // Only initialize locally to prevent null errors, do not force bestStreak to 0
+    if (!state.userStats[key]) {
+        state.userStats[key] = {};
+    }
 
     // 1. Update the state
     state.userStats[key].currentStreak = currentStreak;
@@ -56,7 +60,17 @@ async function syncCurrentStreak() {
     if (state.currentUser && !isOffline && db) {
         try {
             const profileRef = doc(db, 'artifacts', appId, 'users', state.currentUser.uid, 'profile', 'data');
-            await setDoc(profileRef, { stats: state.userStats }, { merge: true });
+            
+            // Send a targeted payload that ONLY updates the current streak
+            const targetedPayload = {
+                stats: {
+                    [key]: {
+                        currentStreak: currentStreak
+                    }
+                }
+            };
+            
+            await setDoc(profileRef, targetedPayload, { merge: true });
         } catch (e) {
             console.warn('Could not sync current streak:', e);
         }
@@ -65,12 +79,13 @@ async function syncCurrentStreak() {
 function loadStreaks() {
     const key = `${state.mode}_${state.length}`;
     
-    // Ensure the stats object exists for this mode
+    // Ensure the stats object exists without hard-resetting existing data
     if (!state.userStats[key]) {
-        state.userStats[key] = { bestStreak: 0, bestWpm: 0 };
+        state.userStats[key] = {};
     }
     
-    bestStreak = state.userStats[key].bestStreak || 0;
+    // Safely pull the best streak, defaulting to 0 only if it's truly undefined
+    bestStreak = state.userStats[key].bestStreak !== undefined ? state.userStats[key].bestStreak : 0;
 
     // Load current streak from Firebase state or fallback to Local Storage
     if (state.currentUser && state.userStats[key].currentStreak !== undefined) {
