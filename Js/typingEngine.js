@@ -44,7 +44,7 @@ const testContainer = document.getElementById('typing-test-container');
 const resultsScreen = document.getElementById('results-screen');
 async function syncCurrentStreak() {
     const key = `${state.mode}_${state.length}`;
-    
+
     // Only initialize locally to prevent null errors, do not force bestStreak to 0
     if (!state.userStats[key]) {
         state.userStats[key] = {};
@@ -60,7 +60,7 @@ async function syncCurrentStreak() {
     if (state.currentUser && !isOffline && db) {
         try {
             const profileRef = doc(db, 'artifacts', appId, 'users', state.currentUser.uid, 'profile', 'data');
-            
+
             // Send a targeted payload that ONLY updates the current streak
             const targetedPayload = {
                 stats: {
@@ -69,7 +69,7 @@ async function syncCurrentStreak() {
                     }
                 }
             };
-            
+
             await setDoc(profileRef, targetedPayload, { merge: true });
         } catch (e) {
             console.warn('Could not sync current streak:', e);
@@ -78,12 +78,12 @@ async function syncCurrentStreak() {
 }
 function loadStreaks() {
     const key = `${state.mode}_${state.length}`;
-    
+
     // Ensure the stats object exists without hard-resetting existing data
     if (!state.userStats[key]) {
         state.userStats[key] = {};
     }
-    
+
     // Safely pull the best streak, defaulting to 0 only if it's truly undefined
     bestStreak = state.userStats[key].bestStreak !== undefined ? state.userStats[key].bestStreak : 0;
 
@@ -94,7 +94,7 @@ function loadStreaks() {
         const localStreak = localStorage.getItem(`streak_current_${key}`);
         currentStreak = localStreak ? parseInt(localStreak) : 0;
     }
-    
+
     updateStreakUI();
 }
 
@@ -267,12 +267,12 @@ async function updateAccountStats(statMode, statLength, localBestStreak, wpm) {
             }
 
             // 2. Ensure objects exist to prevent undefined errors
-            if (!state.userStats[key]) state.userStats[key] = { bestStreak: 0, bestWpm: 0 };
-            if (!dbStats[key]) dbStats[key] = { bestStreak: 0, bestWpm: 0 };
+            if (!state.userStats[key]) state.userStats[key] = {};
+            if (!dbStats[key]) dbStats[key] = {};
 
-            // 3. Calculate the true highest scores between local data, database data, and the new score
-            const trueBestStreak = Math.max(localBestStreak, dbStats[key].bestStreak, state.userStats[key].bestStreak);
-            const trueBestWpm = Math.max(wpm, dbStats[key].bestWpm, state.userStats[key].bestWpm);
+            // 3. Calculate the true highest scores safely (falling back to 0 if undefined/NaN)
+            const trueBestStreak = Math.max(localBestStreak || 0, dbStats[key].bestStreak || 0, state.userStats[key].bestStreak || 0);
+            const trueBestWpm = Math.max(wpm || 0, dbStats[key].bestWpm || 0, state.userStats[key].bestWpm || 0);
 
             // 4. Set local state to the true highest scores
             state.userStats[key].bestStreak = trueBestStreak;
@@ -329,7 +329,7 @@ async function endTest() {
     }
 
     // Save the updated streak status
-    syncCurrentStreak(); 
+    syncCurrentStreak();
 
     document.getElementById('result-wpm').innerText = wpm;
     document.getElementById('result-acc').innerText = `${Math.round(accuracy)}%`;
