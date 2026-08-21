@@ -57,11 +57,25 @@ function populateSongDropdown() {
         const item = document.createElement('div');
         const isActive = index === window.selectedSongIndex;
 
-        item.className = `group flex justify-between items-center px-4 py-2 text-xs font-mono cursor-pointer transition-colors ${isActive ? 'bg-[var(--bg-color)] text-[var(--main-color)] font-bold' : 'text-[var(--sub-color)] hover:bg-[var(--bg-color)] hover:text-[var(--text-color)]'}`;
+        // Added 'song-item' class and draggable property
+        item.className = `song-item group flex justify-between items-center px-4 py-2 text-xs font-mono cursor-pointer transition-colors ${isActive ? 'bg-[var(--bg-color)] text-[var(--main-color)] font-bold' : 'text-[var(--sub-color)] hover:bg-[var(--bg-color)] hover:text-[var(--text-color)]'}`;
+        item.draggable = true; 
+
+        // Create a wrapper for the grip icon and the title so they sit together on the left
+        const leftSideDiv = document.createElement('div');
+        leftSideDiv.className = 'flex items-center gap-3';
+
+        // The 6-dot grip icon
+        const gripIcon = document.createElement('div');
+        gripIcon.className = 'drag-grip cursor-grab active:cursor-grabbing text-[var(--sub-color)] hover:text-[var(--text-color)] transition-colors';
+        gripIcon.innerHTML = `<svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" fill="none"><circle cx="9" cy="5" r="1.5" fill="currentColor"></circle><circle cx="9" cy="12" r="1.5" fill="currentColor"></circle><circle cx="9" cy="19" r="1.5" fill="currentColor"></circle><circle cx="15" cy="5" r="1.5" fill="currentColor"></circle><circle cx="15" cy="12" r="1.5" fill="currentColor"></circle><circle cx="15" cy="19" r="1.5" fill="currentColor"></circle></svg>`;
 
         const titleSpan = document.createElement('span');
         titleSpan.innerText = song.title;
-        item.appendChild(titleSpan);
+        
+        leftSideDiv.appendChild(gripIcon);
+        leftSideDiv.appendChild(titleSpan);
+        item.appendChild(leftSideDiv);
 
         const actionsDiv = document.createElement('div');
         actionsDiv.className = 'flex gap-2 items-center';
@@ -138,19 +152,62 @@ function populateSongDropdown() {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
+    const list = document.getElementById('song-dropdown-list');
+
     document.getElementById('song-dropdown-btn')?.addEventListener('click', (e) => {
         e.stopPropagation();
-        const list = document.getElementById('song-dropdown-list');
         list.classList.toggle('opacity-0');
         list.classList.toggle('pointer-events-none');
     });
 
     document.addEventListener('click', (e) => {
-        const list = document.getElementById('song-dropdown-list');
         if (list && !e.target.closest('#config-songs')) {
             list.classList.add('opacity-0', 'pointer-events-none');
         }
     });
+
+    // --- New Drag and Drop Logic ---
+    if (list) {
+        list.addEventListener('dragstart', (e) => {
+            if (e.target.closest('.song-item')) {
+                e.target.closest('.song-item').classList.add('opacity-50', 'bg-[var(--sub-alt-color)]', 'dragging');
+            }
+        });
+
+        list.addEventListener('dragend', (e) => {
+            if (e.target.closest('.song-item')) {
+                e.target.closest('.song-item').classList.remove('opacity-50', 'bg-[var(--sub-alt-color)]', 'dragging');
+            }
+        });
+
+        list.addEventListener('dragover', (e) => {
+            e.preventDefault(); 
+            const draggable = document.querySelector('.dragging');
+            if (!draggable) return;
+
+            const afterElement = getDragAfterElement(list, e.clientY);
+            
+            if (afterElement == null) {
+                list.appendChild(draggable);
+            } else {
+                list.insertBefore(draggable, afterElement);
+            }
+        });
+    }
+
+    function getDragAfterElement(container, y) {
+        const draggableElements = [...container.querySelectorAll('.song-item:not(.dragging)')];
+
+        return draggableElements.reduce((closest, child) => {
+            const box = child.getBoundingClientRect();
+            const offset = y - box.top - box.height / 2;
+            if (offset < 0 && offset > closest.offset) {
+                return { offset: offset, element: child };
+            } else {
+                return closest;
+            }
+        }, { offset: Number.NEGATIVE_INFINITY }).element;
+    }
 });
 
 const wordList = ["the", "be", "of", "and", "a", "to", "in", "he", "have", "it", "that", "for", "they", "I", "with", "as", "not", "on", "she", "at", "by", "this", "we", "you", "do", "but", "from", "or", "which", "one", "would", "all", "will", "there", "say", "who", "make", "when", "can", "more", "if", "no", "man", "out", "other", "so", "what", "time", "up", "go", "about", "than", "into", "could", "state", "only", "new", "year", "some", "take", "come", "these", "know", "see", "use", "get", "like", "then", "first", "any", "work", "now", "may", "such", "give", "over", "think", "most", "even", "find", "day", "also", "after", "way", "many", "must", "look", "before", "great", "back", "through", "long", "where", "much", "should", "well", "people", "down", "own", "just", "because", "good", "each", "those", "feel", "seem", "how", "high", "too", "place", "little", "world", "very", "still", "nation", "hand", "old", "life", "tell", "write", "become", "here", "show", "house", "both", "between", "need", "mean", "call", "develop", "under", "last", "right", "move", "thing", "general", "school", "never", "same", "another", "begin", "while", "number", "part", "turn", "real", "leave", "might", "want", "point", "form", "off", "child", "few", "small", "since", "against", "ask", "late", "home", "interest", "large", "person", "end", "open", "public", "follow", "during", "present", "without", "again", "hold", "govern", "around", "possible", "head", "consider", "word", "program", "problem", "however", "lead", "system", "set", "order", "eye", "plan", "run", "keep", "face", "fact", "group", "play", "stand", "increase", "early", "course", "change", "help", "line"];
