@@ -1,5 +1,5 @@
 import { db, auth, isOffline, appId } from './firebase.js';
-import { doc, setDoc, getDoc, collection, addDoc, getDocs, deleteDoc, updateDoc } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js';
+import { doc, setDoc, getDoc, collection, addDoc, getDocs, deleteDoc, updateDoc, writeBatch } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js';
 
 const state = window.__appState || (window.__appState = {
     currentUser: null,
@@ -23,14 +23,34 @@ async function loadSongsFromFirebase() {
             customSongs.push({ id: document.id, ...document.data() });
         });
         
-        // Fallback if the database is completely empty
+        // Sort customSongs by their order property
+        customSongs.sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+
         if (customSongs.length === 0) {
-            customSongs = [{ title: "Default Song", lyrics: "this is a default song to test the lyrics feature typing speed", font: "'Great Vibes', cursive" }];
+            customSongs = [{ title: "Default Song", lyrics: "this is a default song to test the lyrics feature typing speed", font: "'Great Vibes', cursive", order: 0 }];
         }
         
         populateSongDropdown();
     } catch (error) {
         console.error("Error loading songs from Firebase:", error);
+    }
+}
+
+// Function to save the new order globally to Firebase
+async function saveSongOrderToFirebase() {
+    if (isOffline || !db) return;
+    try {
+        const batch = writeBatch(db);
+        customSongs.forEach((song, index) => {
+            song.order = index; // Update local memory
+            if (song.id) {
+                const songRef = doc(db, "songs", song.id);
+                batch.update(songRef, { order: index });
+            }
+        });
+        await batch.commit();
+    } catch (error) {
+        console.error("Error saving song order to Firebase:", error);
     }
 }
 
@@ -55,6 +75,7 @@ function populateSongDropdown() {
 
     customSongs.forEach((song, index) => {
         const item = document.createElement('div');
+        if (song.id) item.dataset.id = song.id; // Store ID on DOM element
         const isActive = index === window.selectedSongIndex;
 
         // Added 'song-item' class and draggable property
@@ -174,9 +195,25 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
 
-        list.addEventListener('dragend', (e) => {
-            if (e.target.closest('.song-item')) {
-                e.target.closest('.song-item').classList.remove('opacity-50', 'bg-[var(--sub-alt-color)]', 'dragging');
+        list.addEventListener('dragend', async (e) => {
+            const draggedEl = e.target.closest('.song-item');
+            if (draggedEl) {
+                draggedEl.classList.remove('opacity-50', 'bg-[var(--sub-alt-color)]', 'dragging');
+
+                // Re-array customSongs according to the new DOM layout
+                const itemElements = [...list.querySelectorAll('.song-item')];
+                const reordered = [];
+
+                itemElements.forEach((el) => {
+                    const songId = el.dataset.id;
+                    const found = customSongs.find(s => s.id === songId);
+                    if (found) reordered.push(found);
+                });
+
+                if (reordered.length === customSongs.length) {
+                    customSongs = reordered;
+                    await saveSongOrderToFirebase(); // Sync to Firebase for everyone
+                }
             }
         });
 
@@ -973,7 +1010,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 window.editingSongIndex = null;
             } else {
                 // Add new song to Firebase
-                await addDoc(collection(db, "songs"), { title, lyrics, font, timestamp: Date.now() });
+                await addDoc(collection(db, "songs"), { title, lyrics, font, order: customSongs.length, timestamp: Date.now() });
                 window.selectedSongIndex = customSongs.length; 
             }
 
