@@ -1,5 +1,5 @@
 import { db, auth, isOffline, appId } from './firebase.js';
-import { doc, setDoc, getDoc } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js';
+import { doc, setDoc, getDoc, collection, addDoc, getDocs, deleteDoc, updateDoc } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js';
 
 const state = window.__appState || (window.__appState = {
     currentUser: null,
@@ -13,9 +13,29 @@ const state = window.__appState || (window.__appState = {
 });
 
 // --- Song Management System ---
-let customSongs = JSON.parse(localStorage.getItem('monkeytype_songs')) || [
-    { title: "Default Song", lyrics: "this is a default song to test the lyrics feature typing speed", font: "'Great Vibes', cursive" }
-];
+let customSongs = [];
+
+async function loadSongsFromFirebase() {
+    try {
+        const querySnapshot = await getDocs(collection(db, "songs"));
+        customSongs = [];
+        querySnapshot.forEach((document) => {
+            customSongs.push({ id: document.id, ...document.data() });
+        });
+        
+        // Fallback if the database is completely empty
+        if (customSongs.length === 0) {
+            customSongs = [{ title: "Default Song", lyrics: "this is a default song to test the lyrics feature typing speed", font: "'Great Vibes', cursive" }];
+        }
+        
+        populateSongDropdown();
+    } catch (error) {
+        console.error("Error loading songs from Firebase:", error);
+    }
+}
+
+// Fire this off when the script loads
+loadSongsFromFirebase();
 
 window.selectedSongIndex = 0;
 window.editingSongIndex = null;
@@ -78,8 +98,13 @@ function populateSongDropdown() {
             e.stopPropagation();
 
             if (confirm(`Are you sure you want to delete "${song.title}"?`)) {
+                
+                // Delete from Firebase using the document ID
+                if (song.id) {
+                    deleteDoc(doc(db, "songs", song.id)).catch(err => console.error(err));
+                }
+
                 customSongs.splice(index, 1);
-                localStorage.setItem('monkeytype_songs', JSON.stringify(customSongs));
 
                 if (window.selectedSongIndex === index) {
                     window.selectedSongIndex = 0;
@@ -865,11 +890,10 @@ document.addEventListener('DOMContentLoaded', () => {
         addSongCard.classList.add('scale-95');
     });
 
-    document.getElementById('save-song-btn')?.addEventListener('click', () => {
+    document.getElementById('save-song-btn')?.addEventListener('click', async () => {
         const title = document.getElementById('new-song-title').value.trim();
         const lyrics = document.getElementById('new-song-lyrics').value.trim();
 
-        // Grab the chosen font
         const fontSelect = document.getElementById('fontSelect');
         const font = fontSelect ? fontSelect.value : "'Great Vibes', cursive";
 
@@ -878,25 +902,38 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        if (window.editingSongIndex !== null) {
-            // Update existing song with font
-            customSongs[window.editingSongIndex] = { title, lyrics, font };
-            window.selectedSongIndex = window.editingSongIndex;
-            window.editingSongIndex = null;
-        } else {
-            // Add new song with font
-            customSongs.push({ title, lyrics, font });
-            window.selectedSongIndex = customSongs.length - 1;
+        // Optional: Change button text to show it's saving
+        document.getElementById('save-song-btn').innerText = 'Saving...';
+
+        try {
+            if (window.editingSongIndex !== null) {
+                // Update existing song in Firebase
+                const songToEdit = customSongs[window.editingSongIndex];
+                if (songToEdit.id) {
+                    await updateDoc(doc(db, "songs", songToEdit.id), { title, lyrics, font });
+                }
+                window.selectedSongIndex = window.editingSongIndex;
+                window.editingSongIndex = null;
+            } else {
+                // Add new song to Firebase
+                await addDoc(collection(db, "songs"), { title, lyrics, font, timestamp: Date.now() });
+                window.selectedSongIndex = customSongs.length; 
+            }
+
+            // Reload everything from DB to sync up the new IDs and UI
+            await loadSongsFromFirebase();
+
+            document.getElementById('new-song-title').value = '';
+            document.getElementById('new-song-lyrics').value = '';
+            document.getElementById('close-song-modal').click();
+
+            if (state.mode === 'song') resetTest();
+            
+        } catch (error) {
+            console.error("Error syncing song:", error);
+            alert("Failed to sync to database.");
+        } finally {
+            document.getElementById('save-song-btn').innerText = 'Save Song';
         }
-
-        localStorage.setItem('monkeytype_songs', JSON.stringify(customSongs));
-
-        populateSongDropdown();
-
-        document.getElementById('new-song-title').value = '';
-        document.getElementById('new-song-lyrics').value = '';
-        document.getElementById('close-song-modal').click();
-
-        if (state.mode === 'song') resetTest();
     });
 });
