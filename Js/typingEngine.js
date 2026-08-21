@@ -1,1033 +1,623 @@
-import { db, auth, isOffline, appId } from './firebase.js';
-import { doc, setDoc, getDoc, collection, addDoc, getDocs, deleteDoc, updateDoc, writeBatch } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js';
-
-const state = window.__appState || (window.__appState = {
-    currentUser: null,
-    userProfileData: { username: 'Loading...' },
-    userStats: {},
-    currentView: 'test',
-    mode: 'time',
-    length: 30,
-    lbMode: 'time',
-    lbLength: 30
-});
-
-// --- Song Management System ---
-let customSongs = [];
-
-async function loadSongsFromFirebase() {
-    try {
-        const querySnapshot = await getDocs(collection(db, "songs"));
-        customSongs = [];
-        querySnapshot.forEach((document) => {
-            customSongs.push({ id: document.id, ...document.data() });
-        });
-        
-        // Sort customSongs by their order property
-        customSongs.sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
-
-        if (customSongs.length === 0) {
-            customSongs = [{ title: "Default Song", lyrics: "this is a default song to test the lyrics feature typing speed", font: "'Great Vibes', cursive", order: 0 }];
-        }
-        
-        populateSongDropdown();
-    } catch (error) {
-        console.error("Error loading songs from Firebase:", error);
-    }
-}
-
-// Function to save the new order globally to Firebase
-async function saveSongOrderToFirebase() {
-    if (isOffline || !db) return;
-    try {
-        const batch = writeBatch(db);
-        customSongs.forEach((song, index) => {
-            song.order = index; // Update local memory
-            if (song.id) {
-                const songRef = doc(db, "songs", song.id);
-                batch.update(songRef, { order: index });
-            }
-        });
-        await batch.commit();
-    } catch (error) {
-        console.error("Error saving song order to Firebase:", error);
-    }
-}
-
-// Fire this off when the script loads
-loadSongsFromFirebase();
-
-window.selectedSongIndex = 0;
-window.editingSongIndex = null;
-
-function populateSongDropdown() {
-    const dropdownList = document.getElementById('song-dropdown-list');
-    const selectedName = document.getElementById('selected-song-name');
-    if (!dropdownList || !selectedName) return;
-
-    dropdownList.innerHTML = '';
-
-    if (customSongs[window.selectedSongIndex]) {
-        selectedName.innerText = customSongs[window.selectedSongIndex].title;
-    } else {
-        selectedName.innerText = "Select Song";
-    }
-
-    customSongs.forEach((song, index) => {
-        const item = document.createElement('div');
-        if (song.id) item.dataset.id = song.id; // Store ID on DOM element
-        const isActive = index === window.selectedSongIndex;
-
-        // Added 'song-item' class and draggable property
-        item.className = `song-item group flex justify-between items-center px-4 py-2 text-xs font-mono cursor-pointer transition-colors ${isActive ? 'bg-[var(--bg-color)] text-[var(--main-color)] font-bold' : 'text-[var(--sub-color)] hover:bg-[var(--bg-color)] hover:text-[var(--text-color)]'}`;
-        item.draggable = true; 
-
-        // Create a wrapper for the grip icon and the title so they sit together on the left
-        const leftSideDiv = document.createElement('div');
-        leftSideDiv.className = 'flex items-center gap-3';
-
-        // The 6-dot grip icon
-        const gripIcon = document.createElement('div');
-        gripIcon.className = 'drag-grip cursor-grab active:cursor-grabbing text-[var(--sub-color)] hover:text-[var(--text-color)] transition-colors';
-        gripIcon.innerHTML = `<svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" fill="none"><circle cx="9" cy="5" r="1.5" fill="currentColor"></circle><circle cx="9" cy="12" r="1.5" fill="currentColor"></circle><circle cx="9" cy="19" r="1.5" fill="currentColor"></circle><circle cx="15" cy="5" r="1.5" fill="currentColor"></circle><circle cx="15" cy="12" r="1.5" fill="currentColor"></circle><circle cx="15" cy="19" r="1.5" fill="currentColor"></circle></svg>`;
-
-        const titleSpan = document.createElement('span');
-        titleSpan.innerText = song.title;
-        
-        leftSideDiv.appendChild(gripIcon);
-        leftSideDiv.appendChild(titleSpan);
-        item.appendChild(leftSideDiv);
-
-        const actionsDiv = document.createElement('div');
-        actionsDiv.className = 'flex gap-2 items-center';
-
-        const editBtn = document.createElement('button');
-        editBtn.innerHTML = '<i class="fa-solid fa-pen"></i>';
-        editBtn.className = 'text-[var(--sub-color)] hover:text-[var(--main-color)] transition-colors opacity-0 group-hover:opacity-100 p-1 outline-none';
-        editBtn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            window.editingSongIndex = index;
-            document.getElementById('new-song-title').value = song.title;
-            document.getElementById('new-song-lyrics').value = song.lyrics;
-
-            // Set the font dropdown to the song's saved font
-            const fontSelect = document.getElementById('fontSelect');
-            if (fontSelect && song.font) {
-                fontSelect.value = song.font;
-                fontSelect.style.fontFamily = song.font; // <--- This forces the dropdown to show the current font
-            }
-
-            document.getElementById('modal-title-text').innerHTML = '<i class="fa-solid fa-pen text-[var(--main-color)]"></i> Edit Custom Song';
-            document.getElementById('save-song-btn').innerText = 'Update Song';
-
-            document.getElementById('add-song-modal').classList.remove('opacity-0', 'pointer-events-none');
-            document.getElementById('add-song-modal-card').classList.remove('scale-95');
-            document.getElementById('add-song-modal-card').classList.add('scale-100');
-        });
-
-        const deleteBtn = document.createElement('button');
-        deleteBtn.innerHTML = '<i class="fa-solid fa-trash"></i>';
-        deleteBtn.className = 'text-[var(--sub-color)] hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100 p-1 outline-none';
-
-        deleteBtn.addEventListener('click', (e) => {
-            e.stopPropagation();
-
-            if (confirm(`Are you sure you want to delete "${song.title}"?`)) {
-                
-                // Delete from Firebase using the document ID
-                if (song.id) {
-                    deleteDoc(doc(db, "songs", song.id)).catch(err => console.error(err));
-                }
-
-                customSongs.splice(index, 1);
-
-                if (window.selectedSongIndex === index) {
-                    window.selectedSongIndex = 0;
-                    if (state.mode === 'song' && customSongs.length > 0) resetTest();
-                } else if (window.selectedSongIndex > index) {
-                    window.selectedSongIndex--;
-                }
-
-                if (customSongs.length === 0) {
-                    state.mode = 'time';
-                }
-                populateSongDropdown();
-            }
-        });
-
-        actionsDiv.appendChild(editBtn);
-        actionsDiv.appendChild(deleteBtn);
-        item.appendChild(actionsDiv);
-
-        item.addEventListener('click', () => {
-            window.selectedSongIndex = index;
-            selectedName.innerText = song.title;
-            dropdownList.classList.add('opacity-0', 'pointer-events-none');
-
-            populateSongDropdown();
-            if (state.mode === 'song') resetTest();
-        });
-
-        dropdownList.appendChild(item);
-    });
-}
-
-document.addEventListener('DOMContentLoaded', () => {
-    const list = document.getElementById('song-dropdown-list');
-
-    document.getElementById('song-dropdown-btn')?.addEventListener('click', (e) => {
-        e.stopPropagation();
-        list.classList.toggle('opacity-0');
-        list.classList.toggle('pointer-events-none');
-    });
-
-    document.addEventListener('click', (e) => {
-        if (list && !e.target.closest('#config-songs')) {
-            list.classList.add('opacity-0', 'pointer-events-none');
-        }
-    });
-
-    // --- New Drag and Drop Logic ---
-    if (list) {
-        list.addEventListener('dragstart', (e) => {
-            if (e.target.closest('.song-item')) {
-                e.target.closest('.song-item').classList.add('opacity-50', 'bg-[var(--sub-alt-color)]', 'dragging');
-            }
-        });
-
-        list.addEventListener('dragend', async (e) => {
-            const draggedEl = e.target.closest('.song-item');
-            if (draggedEl) {
-                draggedEl.classList.remove('opacity-50', 'bg-[var(--sub-alt-color)]', 'dragging');
-
-                // Re-array customSongs according to the new DOM layout
-                const itemElements = [...list.querySelectorAll('.song-item')];
-                const reordered = [];
-
-                itemElements.forEach((el) => {
-                    const songId = el.dataset.id;
-                    const found = customSongs.find(s => s.id === songId);
-                    if (found) reordered.push(found);
-                });
-
-                if (reordered.length === customSongs.length) {
-                    customSongs = reordered;
-                    await saveSongOrderToFirebase(); // Sync to Firebase for everyone
-                }
-            }
-        });
-
-        list.addEventListener('dragover', (e) => {
-            e.preventDefault(); 
-            const draggable = document.querySelector('.dragging');
-            if (!draggable) return;
-
-            const afterElement = getDragAfterElement(list, e.clientY);
-            
-            if (afterElement == null) {
-                list.appendChild(draggable);
-            } else {
-                list.insertBefore(draggable, afterElement);
-            }
-        });
-    }
-
-    function getDragAfterElement(container, y) {
-        const draggableElements = [...container.querySelectorAll('.song-item:not(.dragging)')];
-
-        return draggableElements.reduce((closest, child) => {
-            const box = child.getBoundingClientRect();
-            const offset = y - box.top - box.height / 2;
-            if (offset < 0 && offset > closest.offset) {
-                return { offset: offset, element: child };
-            } else {
-                return closest;
-            }
-        }, { offset: Number.NEGATIVE_INFINITY }).element;
-    }
-});
-
-const wordList = ["the", "be", "of", "and", "a", "to", "in", "he", "have", "it", "that", "for", "they", "I", "with", "as", "not", "on", "she", "at", "by", "this", "we", "you", "do", "but", "from", "or", "which", "one", "would", "all", "will", "there", "say", "who", "make", "when", "can", "more", "if", "no", "man", "out", "other", "so", "what", "time", "up", "go", "about", "than", "into", "could", "state", "only", "new", "year", "some", "take", "come", "these", "know", "see", "use", "get", "like", "then", "first", "any", "work", "now", "may", "such", "give", "over", "think", "most", "even", "find", "day", "also", "after", "way", "many", "must", "look", "before", "great", "back", "through", "long", "where", "much", "should", "well", "people", "down", "own", "just", "because", "good", "each", "those", "feel", "seem", "how", "high", "too", "place", "little", "world", "very", "still", "nation", "hand", "old", "life", "tell", "write", "become", "here", "show", "house", "both", "between", "need", "mean", "call", "develop", "under", "last", "right", "move", "thing", "general", "school", "never", "same", "another", "begin", "while", "number", "part", "turn", "real", "leave", "might", "want", "point", "form", "off", "child", "few", "small", "since", "against", "ask", "late", "home", "interest", "large", "person", "end", "open", "public", "follow", "during", "present", "without", "again", "hold", "govern", "around", "possible", "head", "consider", "word", "program", "problem", "however", "lead", "system", "set", "order", "eye", "plan", "run", "keep", "face", "fact", "group", "play", "stand", "increase", "early", "course", "change", "help", "line"];
-
-let words = [];
-let currentWordIndex = 0;
-let activeWordElement = null;
-let hasStarted = false;
-let timer = null;
-let timeRemaining = 0;
-let timeElapsed = 0;
-let correctChars = 0;
-let incorrectChars = 0;
-let extraChars = 0;
-let missedChars = 0;
-let currentStreak = 0;
-let bestStreak = 0;
-let isPerfectTest = true;
-
-const configBar = document.getElementById('config-bar');
-const typingTestDiv = document.getElementById('typing-test');
-const wordsContainer = document.getElementById('words-container');
-const caret = document.getElementById('caret');
-const liveStats = document.getElementById('live-stats');
-const focusOverlay = document.getElementById('focus-overlay');
-const restartBtn = document.getElementById('restart-btn');
-const streakValue = document.getElementById('streak-value');
-const bestStreakValue = document.getElementById('best-streak-value');
-const streakDisplay = document.getElementById('streak-display');
-const languageIndicator = document.getElementById('language-indicator');
-const restartBtnContainer = document.getElementById('restart-btn-container');
-const testContainer = document.getElementById('typing-test-container');
-const resultsScreen = document.getElementById('results-screen');
-
-async function syncCurrentStreak() {
-    const key = `${state.mode}_${state.length}`;
-
-    if (!state.userStats[key]) {
-        state.userStats[key] = {};
-    }
-
-    state.userStats[key].currentStreak = currentStreak;
-    localStorage.setItem(`streak_current_${key}`, currentStreak);
-
-    if (state.currentUser && !isOffline && db) {
-        try {
-            const profileRef = doc(db, 'artifacts', appId, 'users', state.currentUser.uid, 'profile', 'data');
-            const targetedPayload = {
-                stats: {
-                    [key]: {
-                        currentStreak: currentStreak
-                    }
-                }
-            };
-            await setDoc(profileRef, targetedPayload, { merge: true });
-        } catch (e) {
-            console.warn('Could not sync current streak:', e);
-        }
-    }
-}
-
-function loadStreaks() {
-    const key = `${state.mode}_${state.length}`;
-
-    if (!state.userStats[key]) {
-        state.userStats[key] = {};
-    }
-
-    bestStreak = state.userStats[key].bestStreak !== undefined ? state.userStats[key].bestStreak : 0;
-
-    if (state.currentUser && state.userStats[key].currentStreak !== undefined) {
-        currentStreak = state.userStats[key].currentStreak;
-    } else {
-        const localStreak = localStorage.getItem(`streak_current_${key}`);
-        currentStreak = localStreak ? parseInt(localStreak) : 0;
-    }
-
-    updateStreakUI();
-}
-
-function updateStreakUI(flashing = false, failed = false) {
-    if (currentStreak > bestStreak) bestStreak = currentStreak;
-    streakValue.innerText = currentStreak;
-    bestStreakValue.innerText = bestStreak;
-
-    if (currentStreak > 0) streakDisplay.classList.add('streak-active');
-    else streakDisplay.classList.remove('streak-active');
-
-    if (failed) {
-        streakDisplay.classList.add('streak-broken');
-        setTimeout(() => streakDisplay.classList.remove('streak-broken'), 500);
-    } else if (flashing) {
-        streakDisplay.classList.add('streak-success');
-        setTimeout(() => streakDisplay.classList.remove('streak-success'), 1000);
-    }
-}
-
-function renderWords() {
-    wordsContainer.innerHTML = '';
-    wordsContainer.style.top = '0px';
-    words = [];
-
-    if (state.mode === 'song') {
-        const selectedIndex = window.selectedSongIndex || 0;
-        const song = customSongs[selectedIndex];
-
-        if (song) {
-            // APPLY FONT TO CONTAINER
-            if (song.font) {
-                wordsContainer.style.fontFamily = song.font;
-            } else {
-                wordsContainer.style.fontFamily = '';
-            }
-
-            const lines = song.lyrics.split('\n');
-            let emptyLineCount = 0;
-            const wordData = [];
-
-            lines.forEach((line) => {
-                const lineWords = line.trim().split(/\s+/).filter(w => w.length > 0);
-
-                if (lineWords.length === 0) {
-                    emptyLineCount++;
-                } else {
-                    if (emptyLineCount > 0 && wordData.length > 0) {
-                        wordData[wordData.length - 1].blankLinesAfter = emptyLineCount;
-                        emptyLineCount = 0;
-                    }
-                    lineWords.forEach((w) => {
-                        wordData.push({ text: w, isEnter: false, blankLinesAfter: 0 });
-                    });
-                    wordData.push({ text: '↵', isEnter: true, blankLinesAfter: 0 });
-                }
-            });
-
-            words = wordData.map(w => w.text);
-
-            wordData.forEach(data => {
-                const wordEl = document.createElement('div');
-                wordEl.className = 'word';
-
-                if (data.isEnter) {
-                    wordEl.dataset.isEnter = 'true';
-                    const letterEl = document.createElement('span');
-                    letterEl.className = 'letter';
-                    letterEl.innerHTML = '&#8629;';
-                    wordEl.appendChild(letterEl);
-                } else {
-                    for (let i = 0; i < data.text.length; i++) {
-                        const letterEl = document.createElement('span');
-                        letterEl.className = 'letter';
-                        letterEl.innerText = data.text[i];
-                        wordEl.appendChild(letterEl);
-                    }
-                }
-
-                if (data.blankLinesAfter > 0) {
-                    wordEl.style.marginBottom = `calc(var(--test-line-height) * ${data.blankLinesAfter})`;
-                }
-                wordsContainer.appendChild(wordEl);
-
-                if (data.isEnter) {
-                    const breakEl = document.createElement('div');
-                    breakEl.style.flexBasis = '100%';
-                    breakEl.style.height = '0';
-                    breakEl.style.margin = '0';
-                    wordsContainer.appendChild(breakEl);
-                }
-            });
-        }
-    } else {
-        // RESET FONT FOR STANDARD TYPING MODES
-        wordsContainer.style.fontFamily = '';
-
-        const wordCount = state.mode === 'time' ? 1000 : state.length;
-        for (let i = 0; i < wordCount; i++) {
-            words.push(wordList[Math.floor(Math.random() * wordList.length)]);
-        }
-        words.forEach((wordText) => {
-            const wordEl = document.createElement('div');
-            wordEl.className = 'word';
-            for (let i = 0; i < wordText.length; i++) {
-                const letterEl = document.createElement('span');
-                letterEl.className = 'letter';
-                letterEl.innerText = wordText[i];
-                wordEl.appendChild(letterEl);
-            }
-            wordsContainer.appendChild(wordEl);
-        });
-    }
-
-    currentWordIndex = 0;
-    activeWordElement = wordsContainer.children[currentWordIndex];
-    if (activeWordElement) activeWordElement.classList.add('active');
-    updateCaretPosition();
-}
-
-function updateCaretPosition() {
-    const wordEl = wordsContainer.children[currentWordIndex];
-    if (!wordEl) return;
-
-    let activeLetterIndex = -1;
-    const letters = wordEl.children;
-    for (let i = 0; i < letters.length; i++) {
-        if (!letters[i].classList.contains('correct') && !letters[i].classList.contains('incorrect')) {
-            activeLetterIndex = i;
-            break;
-        }
-    }
-
-    let targetEl;
-    let appendRight = false;
-    if (activeLetterIndex === -1) {
-        targetEl = letters[letters.length - 1];
-        appendRight = true;
-    } else {
-        targetEl = letters[activeLetterIndex];
-    }
-
-    if (targetEl) {
-        let leftPos = targetEl.offsetLeft;
-        let topPos = targetEl.offsetTop;
-        if (appendRight) leftPos += targetEl.offsetWidth;
-
-        const compStyle = getComputedStyle(document.documentElement);
-        const lineHeightStr = compStyle.getPropertyValue('--test-line-height').trim();
-        const lineHeight = parseInt(lineHeightStr.replace('px', '')) || 48;
-
-        let caretTop;
-        if (topPos > lineHeight) {
-            wordsContainer.style.top = `-${topPos - lineHeight}px`;
-            caretTop = lineHeight + (lineHeight * 0.1);
-        } else {
-            wordsContainer.style.top = '0px';
-            caretTop = topPos + (lineHeight * 0.1);
-        }
-
-        caret.style.transform = `translate(${leftPos}px, ${caretTop}px)`;
-    }
-}
-
-function breakStreak() {
-    if (isPerfectTest) {
-        isPerfectTest = false;
-        currentStreak = 0;
-        updateStreakUI(false, true);
-        syncCurrentStreak();
-    }
-}
-
-function startTest() {
-    hasStarted = true;
-    isPerfectTest = true;
-    timeElapsed = 0;
-
-    // Apply the exact chosen font to the words container when typing starts
-    if (state.mode === 'song') {
-        const song = customSongs[window.selectedSongIndex || 0];
-        if (song && song.font) {
-            wordsContainer.style.fontFamily = song.font;
-        }
-    }
-
-    configBar.style.opacity = '0';
-    languageIndicator.style.opacity = '0';
-    restartBtnContainer.style.opacity = '0';
-    setTimeout(() => {
-        configBar.classList.add('invisible');
-        languageIndicator.classList.add('invisible');
-    }, 300);
-
-    if (state.mode === 'time') {
-        timeRemaining = state.length;
-        liveStats.innerText = timeRemaining;
-        timer = setInterval(() => {
-            timeRemaining -= 1;
-            timeElapsed += 1;
-            liveStats.innerText = timeRemaining;
-            if (timeRemaining <= 0) endTest();
-        }, 1000);
-    } else {
-        liveStats.innerText = `0/${state.length}`;
-        timer = setInterval(() => {
-            timeElapsed += 1;
-        }, 1000);
-    }
-}
-
-function resetTest() {
-    clearInterval(timer);
-    hasStarted = false;
-    isPerfectTest = true;
-    correctChars = 0;
-    incorrectChars = 0;
-    extraChars = 0;
-    missedChars = 0;
-
-    resultsScreen.classList.add('hide');
-    testContainer.classList.remove('hide');
-    liveStats.classList.remove('hide');
-    configBar.classList.remove('hide', 'invisible');
-    configBar.style.opacity = '1';
-    languageIndicator.classList.remove('hide', 'invisible');
-    languageIndicator.style.opacity = '1';
-    restartBtnContainer.classList.remove('hide');
-    restartBtnContainer.style.opacity = '1';
-
-    renderWords();
-
-    if (state.mode === 'song') {
-        liveStats.innerText = `0/${words.length}`;
-    } else {
-        liveStats.innerText = state.mode === 'time' ? state.length : `0/${state.length}`;
-    }
-
-    setTimeout(() => {
-        if (state.currentView === 'test') typingTestDiv.focus();
-    }, 10);
-}
-
-async function updateAccountStats(statMode, statLength, localBestStreak, wpm) {
-    const key = `${statMode}_${statLength}`;
-    if (!state.currentUser) return;
-
-    if (!isOffline && db) {
-        try {
-            const profileRef = doc(db, 'artifacts', appId, 'users', state.currentUser.uid, 'profile', 'data');
-            const snap = await getDoc(profileRef);
-            let dbStats = {};
-            if (snap.exists() && snap.data().stats) {
-                dbStats = snap.data().stats;
-            }
-
-            if (!state.userStats[key]) state.userStats[key] = {};
-            if (!dbStats[key]) dbStats[key] = {};
-
-            const trueBestStreak = Math.max(localBestStreak || 0, dbStats[key].bestStreak || 0, state.userStats[key].bestStreak || 0);
-            const trueBestWpm = Math.max(wpm || 0, dbStats[key].bestWpm || 0, state.userStats[key].bestWpm || 0);
-
-            state.userStats[key].bestStreak = trueBestStreak;
-            state.userStats[key].bestWpm = trueBestWpm;
-
-            await setDoc(profileRef, { stats: state.userStats }, { merge: true });
-
-            const userScoreRef = doc(db, 'artifacts', appId, 'public', 'data', `leaderboard_${statMode}_${statLength}`, state.currentUser.uid);
-            await setDoc(userScoreRef, { username: state.userProfileData.username, streak: trueBestStreak, wpm: trueBestWpm, updatedAt: Date.now(), uid: state.currentUser.uid }, { merge: true });
-
-            if (typeof window.syncUserRegistry === 'function') await window.syncUserRegistry();
-        } catch (e) {
-            console.warn('Could not sync typing stats:', e);
-        }
-    } else {
-        if (!state.userStats[key]) state.userStats[key] = { bestStreak: 0, bestWpm: 0 };
-        if (localBestStreak > state.userStats[key].bestStreak) state.userStats[key].bestStreak = localBestStreak;
-        if (wpm > state.userStats[key].bestWpm) state.userStats[key].bestWpm = wpm;
-    }
-}
-
-async function endTest() {
-    clearInterval(timer);
-    hasStarted = false;
-    if (timeElapsed === 0) timeElapsed = 1;
-
-    for (let i = 0; i < currentWordIndex; i++) {
-        const w = wordsContainer.children[i];
-        if (w) {
-            w.querySelectorAll('.letter').forEach((l) => {
-                if (!l.classList.contains('correct') && !l.classList.contains('incorrect') && !l.classList.contains('extra')) missedChars++;
-            });
-        }
-    }
-
-    const totalErrors = incorrectChars + extraChars + missedChars;
-    const totalAttempted = correctChars + totalErrors;
-    const accuracy = totalAttempted === 0 ? 0 : (correctChars / totalAttempted) * 100;
-    const wpm = Math.round((correctChars / 5) / (timeElapsed / 60));
-
-    const meetsSpeed = state.mode === 'time' ? correctChars >= ((state.length / 3) * 5) : timeElapsed <= (state.length * 3);
-
-    if (isPerfectTest) {
-        if (totalAttempted > 0 && accuracy === 100 && meetsSpeed) {
-            currentStreak += 1;
-            updateStreakUI(true, false);
-        } else {
-            isPerfectTest = false;
-            currentStreak = 0;
-            updateStreakUI(false, true);
-        }
-    }
-
-    syncCurrentStreak();
-
-    document.getElementById('result-wpm').innerText = wpm;
-    document.getElementById('result-acc').innerText = `${Math.round(accuracy)}%`;
-    document.getElementById('result-type').innerText = `${state.mode} ${state.length}`;
-    document.getElementById('result-chars').innerText = `${correctChars}/${incorrectChars}/${extraChars}/${missedChars}`;
-    document.getElementById('result-time').innerText = `${timeElapsed}s`;
-
-    if (isPerfectTest && totalAttempted > 0) {
-        document.getElementById('result-streak').innerHTML = `<span style="color: var(--main-color)">+1 Perfect</span> (${currentStreak})`;
-    } else {
-        document.getElementById('result-streak').innerHTML = `Broken <span class="text-sm" style="color: var(--sub-color)">(0)</span>`;
-    }
-    document.getElementById('result-best-streak').innerText = bestStreak;
-
-    testContainer.classList.add('hide');
-    liveStats.classList.add('hide');
-    configBar.classList.add('hide');
-    languageIndicator.classList.add('hide');
-    restartBtnContainer.classList.add('hide');
-    resultsScreen.classList.remove('hide');
-
-    if (document.activeElement) document.activeElement.blur();
-
-    await updateAccountStats(state.mode, state.length, bestStreak, wpm);
-}
-
-function setupConfigListeners() {
-    const modeItems = document.querySelectorAll('.config-item[data-mode]');
-    const lengthContainer = document.getElementById('config-lengths');
-    const songContainer = document.getElementById('config-songs');
-
-    function lengthClickHandler(e) {
-        document.querySelectorAll('#config-lengths .config-item').forEach((i) => i.classList.remove('active'));
-        e.currentTarget.classList.add('active');
-        state.length = Number(e.currentTarget.dataset.val);
-        loadStreaks();
-        resetTest();
-    }
-
-    modeItems.forEach((item) => {
-        item.addEventListener('click', (e) => {
-            modeItems.forEach((i) => i.classList.remove('active'));
-            e.currentTarget.classList.add('active');
-            state.mode = e.currentTarget.dataset.mode;
-
-            if (state.mode === 'song') {
-                lengthContainer.classList.add('hide');
-                songContainer.classList.remove('hide');
-                state.length = customSongs[document.getElementById('song-select')?.value || 0]?.lyrics.split(/\s+/).length || 0;
-            } else {
-                lengthContainer.classList.remove('hide');
-                songContainer.classList.add('hide');
-
-                lengthContainer.innerHTML = '';
-                const lengths = state.mode === 'time' ? [15, 30, 60, 120] : [10, 25, 50, 100];
-                lengths.forEach((val, idx) => {
-                    const span = document.createElement('span');
-                    span.className = `config-item ${idx === 1 ? 'active' : ''}`;
-                    span.dataset.val = val;
-                    span.innerText = val;
-                    span.addEventListener('click', lengthClickHandler);
-                    lengthContainer.appendChild(span);
-                });
-                state.length = lengths[1];
-            }
-
-            loadStreaks();
-            resetTest();
-        });
-    });
-
-    document.querySelectorAll('#config-lengths .config-item[data-val]').forEach((i) => i.addEventListener('click', lengthClickHandler));
-}
-
-window.loadStreaks = loadStreaks;
-window.updateStreakUI = updateStreakUI;
-window.renderWords = renderWords;
-window.updateCaretPosition = updateCaretPosition;
-window.resetTest = resetTest;
-window.setupConfigListeners = setupConfigListeners;
-window.endTest = endTest;
-window.__appState = state;
-
-window.wordsContainer = wordsContainer;
-window.currentView = state.currentView;
-window.mode = state.mode;
-window.length = state.length;
-
-if (typingTestDiv) {
-    typingTestDiv.addEventListener('keydown', (e) => {
-        if (state.currentView !== 'test' || !state.currentUser) return;
-        if (!hasStarted && e.key.length === 1 && !e.metaKey && !e.ctrlKey) startTest();
-
-        const currentWordEl = wordsContainer.children[currentWordIndex];
-        if (!currentWordEl) return;
-
-        const isEnterWord = currentWordEl.dataset.isEnter === 'true';
-
-        if (e.key === 'Enter') {
-            if (isEnterWord) {
-                currentWordEl.children[0].classList.add('correct');
-                correctChars += 1;
-                currentWordIndex += 1;
-
-                if (currentWordIndex >= wordsContainer.children.length) {
-                    endTest();
-                    return;
-                }
-                updateCaretPosition();
-
-                if (state.mode === 'song' || state.mode === 'words') {
-                    const total = state.mode === 'song' ? words.length : state.length;
-                    liveStats.innerText = `${currentWordIndex}/${total}`;
-                }
-            } else if (currentWordIndex + 1 < wordsContainer.children.length &&
-                wordsContainer.children[currentWordIndex + 1].dataset.isEnter === 'true') {
-
-                const letters = currentWordEl.children;
-                let hasError = false;
-                for (let i = 0; i < letters.length; i++) {
-                    const l = letters[i];
-                    if (l.classList.contains('incorrect') || (!l.classList.contains('correct') && !l.classList.contains('extra'))) {
-                        hasError = true;
-                        break;
-                    }
-                }
-                if (hasError) {
-                    currentWordEl.classList.add('error-underline');
-                    breakStreak();
-                }
-
-                currentWordIndex += 1;
-
-                const enterWordEl = wordsContainer.children[currentWordIndex];
-                enterWordEl.children[0].classList.add('correct');
-                correctChars += 1;
-                currentWordIndex += 1;
-                const nextElement = wordsContainer.children[currentWordIndex];
-                if (nextElement && nextElement.style.flexBasis === '100%') {
-                    currentWordIndex++;
-                }
-                if (currentWordIndex >= words.length) {
-                    endTest();
-                    return;
-                }
-                updateCaretPosition();
-
-                if (state.mode === 'song' || state.mode === 'words') {
-                    const total = state.mode === 'song' ? words.length : state.length;
-                    liveStats.innerText = `${currentWordIndex}/${total}`;
-                }
-            }
-            return;
-        }
-
-        if (e.ctrlKey || e.metaKey || e.altKey || ['Tab', 'Escape', 'Enter', 'Shift', 'CapsLock', 'Alt'].includes(e.key)) return;
-        e.preventDefault();
-
-        const letters = currentWordEl.children;
-        let untypedIndex = -1;
-        for (let i = 0; i < letters.length; i++) {
-            if (!letters[i].classList.contains('correct') && !letters[i].classList.contains('incorrect')) {
-                untypedIndex = i;
-                break;
-            }
-        }
-
-        if (e.key === ' ') {
-            if (isEnterWord) return;
-
-            if (currentWordIndex + 1 < wordsContainer.children.length &&
-                wordsContainer.children[currentWordIndex + 1].dataset.isEnter === 'true') {
-                return;
-            }
-
-            if (untypedIndex === 0 && !letters[0].classList.contains('incorrect')) return;
-            let hasError = false;
-            for (let i = 0; i < letters.length; i++) {
-                const l = letters[i];
-                if (l.classList.contains('incorrect') || (!l.classList.contains('correct') && !l.classList.contains('extra'))) {
-                    hasError = true;
-                    break;
-                }
-            }
-            if (hasError) {
-                currentWordEl.classList.add('error-underline');
-                breakStreak();
-            }
-
-            currentWordIndex += 1;
-            if (currentWordIndex >= words.length) {
-                endTest();
-                return;
-            }
-            updateCaretPosition();
-
-            if (state.mode === 'words' || state.mode === 'song') {
-                const total = state.mode === 'song' ? words.length : state.length;
-                liveStats.innerText = `${currentWordIndex}/${total}`;
-                if (currentWordIndex >= total) endTest();
-            }
-            return;
-        }
-
-        if (e.key === 'Backspace') {
-            if (untypedIndex === 0 || isEnterWord) {
-                if (currentWordIndex > 0) {
-                    const prevWord = wordsContainer.children[currentWordIndex - 1];
-                    const prevIsEnter = prevWord.dataset.isEnter === 'true';
-
-                    if (prevIsEnter) {
-                        prevWord.children[0].classList.remove('correct', 'incorrect');
-                        currentWordIndex -= 1;
-                        correctChars -= 1;
-
-                        if (currentWordIndex > 0) {
-                            const wordBeforeEnter = wordsContainer.children[currentWordIndex - 1];
-                            if (wordBeforeEnter.classList.contains('error-underline')) {
-                                wordBeforeEnter.classList.remove('error-underline');
-                                currentWordIndex -= 1;
-                            }
-                        }
-
-                        updateCaretPosition();
-                        if (state.mode === 'song' || state.mode === 'words') {
-                            const total = state.mode === 'song' ? words.length : state.length;
-                            liveStats.innerText = `${currentWordIndex}/${total}`;
-                        }
-                    } else if (prevWord.classList.contains('error-underline')) {
-                        prevWord.classList.remove('error-underline');
-                        currentWordIndex -= 1;
-                        updateCaretPosition();
-                        if (state.mode === 'song' || state.mode === 'words') {
-                            const total = state.mode === 'song' ? words.length : state.length;
-                            liveStats.innerText = `${currentWordIndex}/${total}`;
-                        }
-                    }
-                }
-            } else {
-                const idxToRemove = untypedIndex === -1 ? letters.length - 1 : untypedIndex - 1;
-                const letterEl = letters[idxToRemove];
-                if (letterEl && letterEl.classList.contains('extra')) {
-                    letterEl.remove();
-                } else if (letterEl) {
-                    letterEl.classList.remove('correct', 'incorrect');
-                }
-                updateCaretPosition();
-            }
-            return;
-        }
-
-        if (e.key.length === 1) {
-            if (isEnterWord) return;
-
-            if (untypedIndex !== -1) {
-                if (e.key === letters[untypedIndex].innerText) {
-                    letters[untypedIndex].classList.add('correct');
-                    correctChars += 1;
-                } else {
-                    breakStreak();
-                    letters[untypedIndex].classList.add('incorrect');
-                    incorrectChars += 1;
-                }
-            } else {
-                breakStreak();
-                const extra = document.createElement('span');
-                extra.className = 'letter incorrect extra';
-                extra.innerText = e.key;
-                currentWordEl.appendChild(extra);
-                extraChars += 1;
-            }
-            updateCaretPosition();
-        }
-    });
-}
-
-if (focusOverlay) focusOverlay.addEventListener('click', () => typingTestDiv.focus());
-if (restartBtn) restartBtn.addEventListener('click', resetTest);
-if (document.getElementById('next-test-btn')) document.getElementById('next-test-btn').addEventListener('click', resetTest);
-
-if (typingTestDiv) {
-    typingTestDiv.addEventListener('keydown', () => {
-        caret.classList.add('typing');
-        clearTimeout(caret.typingTimeout);
-        caret.typingTimeout = setTimeout(() => caret.classList.remove('typing'), 500);
-    });
-}
-
-window.addEventListener('DOMContentLoaded', () => {
-    if (typeof window.setupConfigListeners === 'function') window.setupConfigListeners();
-    if (typeof window.resetTest === 'function') window.resetTest();
-});
-
-window.addEventListener('mousemove', () => {
-    document.body.classList.remove('hide-mouse');
-});
-
-typingTestDiv.addEventListener('keydown', (e) => {
-    if (state.currentView === 'test' && !['Shift', 'Alt', 'Control', 'Meta'].includes(e.key)) {
-        document.body.classList.add('hide-mouse');
-    }
-});
-
-window.addEventListener('keydown', (e) => {
-    if (state.currentView === 'test' && e.key === 'Tab') {
-        e.preventDefault();
-
-        if (!resultsScreen.classList.contains('hide')) {
-            document.getElementById('next-test-btn').focus();
-        } else {
-            document.getElementById('restart-btn').focus();
-        }
-    }
-});
-
-// --- Add Song Modal Event Listeners ---
-document.addEventListener('DOMContentLoaded', () => {
-    populateSongDropdown();
-
-    const addSongModal = document.getElementById('add-song-modal');
-    const addSongCard = document.getElementById('add-song-modal-card');
-
-    document.getElementById('add-song-modal-trigger')?.addEventListener('click', () => {
-        window.editingSongIndex = null;
-        document.getElementById('new-song-title').value = '';
-        document.getElementById('new-song-lyrics').value = '';
-
-        // Reset the font dropdown when adding a new song
-        const fontSelect = document.getElementById('fontSelect');
-        if (fontSelect) {
-            fontSelect.selectedIndex = 0;
-            fontSelect.style.fontFamily = fontSelect.value; // <--- Resets it back to standard font
-        }
-
-        document.getElementById('modal-title-text').innerHTML = '<i class="fa-solid fa-music text-[var(--main-color)]"></i> Add Custom Song';
-        document.getElementById('save-song-btn').innerText = 'Save Song';
-
-        addSongModal.classList.remove('opacity-0', 'pointer-events-none');
-        addSongCard.classList.remove('scale-95');
-        addSongCard.classList.add('scale-100');
-    });
-
-    document.getElementById('close-song-modal')?.addEventListener('click', () => {
-        addSongModal.classList.add('opacity-0', 'pointer-events-none');
-        addSongCard.classList.remove('scale-100');
-        addSongCard.classList.add('scale-95');
-    });
-
-    document.getElementById('save-song-btn')?.addEventListener('click', async () => {
-        const title = document.getElementById('new-song-title').value.trim();
-        const lyrics = document.getElementById('new-song-lyrics').value.trim();
-
-        const fontSelect = document.getElementById('fontSelect');
-        const font = fontSelect ? fontSelect.value : "'Great Vibes', cursive";
-
-        if (!title || !lyrics) {
-            alert('Please enter both a title and lyrics!');
-            return;
-        }
-
-        // Optional: Change button text to show it's saving
-        document.getElementById('save-song-btn').innerText = 'Saving...';
-
-        try {
-            if (window.editingSongIndex !== null) {
-                // Update existing song in Firebase
-                const songToEdit = customSongs[window.editingSongIndex];
-                if (songToEdit.id) {
-                    await updateDoc(doc(db, "songs", songToEdit.id), { title, lyrics, font });
-                }
-                window.selectedSongIndex = window.editingSongIndex;
-                window.editingSongIndex = null;
-            } else {
-                // Add new song to Firebase
-                await addDoc(collection(db, "songs"), { title, lyrics, font, order: customSongs.length, timestamp: Date.now() });
-                window.selectedSongIndex = customSongs.length; 
-            }
-
-            // Reload everything from DB to sync up the new IDs and UI
-            await loadSongsFromFirebase();
-
-            document.getElementById('new-song-title').value = '';
-            document.getElementById('new-song-lyrics').value = '';
-            document.getElementById('close-song-modal').click();
-
-            if (state.mode === 'song') resetTest();
-            
-        } catch (error) {
-            console.error("Error syncing song:", error);
-            alert("Failed to sync to database.");
-        } finally {
-            document.getElementById('save-song-btn').innerText = 'Save Song';
-        }
-    });
-});
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Monkeytype - Squad Leaderboard</title>
+
+    <!-- External Scripts and Fonts -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <!-- Link to your local CSS file -->
+    <link rel="stylesheet" href="style.css">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Abril+Fatface&family=Alex+Brush&family=Amatic+SC:wght@400;700&family=Anton&family=Bebas+Neue&family=Caveat:wght@400;700&family=Cinzel:wght@400;700&family=Comfortaa:wght@400;700&family=Cormorant+Garamond:ital,wght@0,400;1,400&family=Dancing+Script:wght@400;700&family=Fira+Code&family=Fredoka:wght@400;700&family=Great+Vibes&family=Inconsolata:wght@400;700&family=Indie+Flower&family=Inter:wght@400;700&family=JetBrains+Mono&family=Lato:wght@400;700&family=Lobster&family=Lora:ital,wght@0,400;1,400&family=Merriweather:ital,wght@0,400;1,400&family=Montserrat:wght@400;700&family=Nothing+You+Could+Do&family=Nunito:wght@400;700&family=Open+Sans:wght@400;700&family=Oswald:wght@400;700&family=PT+Serif:ital,wght@0,400;1,400&family=Pacifico&family=Parisienne&family=Permanent+Marker&family=Playfair+Display:ital,wght@0,400;1,400&family=Poppins:ital,wght@0,400;1,400&family=Raleway:ital,wght@0,400;1,400&family=Righteous&family=Roboto:wght@400;700&family=Rock+Salt&family=Satisfy&family=Shadows+Into+Light&family=Space+Mono&family=Special+Elite&display=swap"
+        rel="stylesheet">
+</head>
+
+<body class="antialiased selection:bg-cyan-600/30">
+
+    <div class="max-w-[1000px] mx-auto w-full px-6 py-6 flex flex-col min-h-screen">
+
+        <header class="flex justify-between items-center mb-8 w-full flex-wrap gap-4">
+            <div class="flex items-center gap-6">
+                <div id="logo-btn" class="flex items-center gap-2 group cursor-pointer">
+                    <div
+                        class="relative flex items-center justify-center w-9 h-9 rounded-lg bg-[var(--sub-alt-color)] text-[var(--main-color)] transition-transform group-hover:scale-105">
+                        <i class="fa-solid fa-keyboard text-lg"></i>
+                    </div>
+                    <div class="text-2xl font-bold tracking-tighter text-[var(--text-color)] flex items-baseline">
+                        mt<span class="text-[var(--main-color)] transition-colors">.</span>
+                    </div>
+                </div>
+
+                <nav class="flex items-center gap-2 bg-[var(--sub-alt-color)] p-1 rounded-lg">
+                    <button id="nav-test-btn"
+                        class="px-3 py-1.5 rounded-md text-xs font-semibold text-[var(--main-color)] bg-[var(--bg-color)] transition-all flex items-center gap-1.5 shadow-sm">
+                        <i class="fa-solid fa-keyboard"></i> Test
+                    </button>
+                    <button id="nav-leaderboard-btn"
+                        class="px-3 py-1.5 rounded-md text-xs font-semibold text-[var(--sub-color)] hover:text-[var(--text-color)] transition-all flex items-center gap-1.5">
+                        <i class="fa-solid fa-trophy"></i> Leaderboard
+                    </button>
+                </nav>
+            </div>
+
+            <div class="flex items-center gap-4 text-sm text-[var(--sub-color)]">
+                <div id="streak-display" class="streak-counter group relative cursor-help">
+                    <i class="fa-solid fa-fire text-lg"></i>
+                    <span class="tracking-wider text-xs uppercase hidden sm:inline">Streak:</span>
+                    <span id="streak-value" class="text-lg font-bold">0</span>
+
+                    <div class="border-l border-[var(--sub-color)] pl-2 flex items-baseline">
+                        <span
+                            class="tracking-wider text-[10px] uppercase text-[var(--sub-color)] hidden sm:inline">Best:</span>
+                        <span id="best-streak-value" class="text-xs font-bold text-[var(--text-color)]">0</span>
+                    </div>
+
+                    <div
+                        class="absolute top-10 right-0 w-max bg-[var(--sub-alt-color)] text-[var(--text-color)] text-xs py-1 px-3 rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 shadow-lg border border-theme">
+                        100% Accuracy Required. Resets on first typo.
+                    </div>
+                </div>
+
+                <button id="settings-modal-trigger"
+                    class="flex items-center justify-center w-8 h-8 rounded-lg bg-[var(--sub-alt-color)] text-[var(--sub-color)] hover:text-[var(--text-color)] transition-colors shadow-sm">
+                    <i class="fa-solid fa-gear"></i>
+                </button>
+
+                <button id="auth-modal-trigger"
+                    class="flex items-center gap-2 bg-[var(--sub-alt-color)] hover:brightness-110 text-[var(--text-color)] px-3 py-1.5 rounded-lg text-xs font-semibold transition-all shadow-sm">
+                    <i class="fa-solid fa-user-astronaut text-[var(--main-color)] transition-colors"></i>
+                    <span id="profile-name-display">Loading...</span>
+                </button>
+            </div>
+        </header>
+
+        <div id="config-bar" class="config-bar-container w-full relative z-40">
+            <div class="config-group">
+                <span class="config-item active" data-mode="time"><i class="fa-solid fa-clock mr-1"></i> time</span>
+                <span class="config-item" data-mode="words"><i class="fa-solid fa-font mr-1"></i> words</span>
+                <!-- 1. Add the new Song mode button -->
+                <span class="config-item" data-mode="song"><i class="fa-solid fa-music mr-1"></i> song</span>
+            </div>
+
+            <div class="config-group" id="config-lengths">
+                <span class="config-item" data-val="15">15</span>
+                <span class="config-item active" data-val="30">30</span>
+                <span class="config-item" data-val="60">60</span>
+                <span class="config-item" data-val="120">120</span>
+            </div>
+
+            <!-- 2. Add the Song Selection Dropdown (Hidden by default) -->
+            <div class="config-group hide relative" id="config-songs">
+                <!-- Custom Trigger Button -->
+                <button id="song-dropdown-btn"
+                    class="flex items-center gap-2 text-[var(--sub-color)] hover:text-[var(--text-color)] transition-colors outline-none font-mono text-xs pr-2">
+                    <span id="selected-song-name">Select Song</span>
+                    <i class="fa-solid fa-chevron-down text-[10px]"></i>
+                </button>
+
+                <!-- Custom Hidden Menu -->
+                <div id="song-dropdown-list"
+                    class="absolute top-full left-1/2 -translate-x-1/2 mt-3 w-max min-w-[160px] bg-[var(--sub-alt-color)] border border-theme rounded-xl shadow-xl opacity-0 pointer-events-none transition-all z-50 flex flex-col overflow-hidden max-h-48 overflow-y-auto">
+                    <!-- Options injected via JS -->
+                </div>
+                <!-- Your existing add song button -->
+                <button id="add-song-modal-trigger"
+                    class="text-[var(--sub-color)] hover:text-[var(--main-color)] transition-colors ml-2"
+                    title="Add a new song">
+                    <i class="fa-solid fa-plus"></i>
+                </button>
+            </div>
+        </div>
+
+        <main class="flex-grow flex flex-col relative w-full pt-2">
+
+            <div id="view-test" class="w-full flex flex-col">
+                <div class="flex justify-center text-[var(--sub-color)] mb-4 text-xs transition-opacity duration-300"
+                    id="language-indicator">
+                    <span class="cursor-pointer hover:text-[var(--text-color)] transition-colors"><i
+                            class="fa-solid fa-globe mr-1.5"></i>english</span>
+                </div>
+
+                <div id="live-stats"
+                    class="text-[1.5rem] text-[var(--main-color)] font-medium mb-2 h-8 transition-opacity duration-300 text-left transition-colors">
+                    30
+                </div>
+
+                <div id="typing-test-container" class="relative w-full">
+                    <div id="focus-overlay" class="hidden">
+                        <div
+                            class="text-[var(--text-color)] text-sm md:text-base flex items-center gap-2 bg-[var(--sub-alt-color)] px-6 py-3 rounded-xl shadow-lg border border-theme">
+                            <i class="fa-solid fa-arrow-pointer text-[var(--main-color)] transition-colors"></i> Click
+                            here or press any key to focus
+                        </div>
+                    </div>
+
+                    <div id="typing-test" tabindex="0" class="outline-none">
+                        <div id="caret"></div>
+                        <div id="words-container"></div>
+                    </div>
+                </div>
+
+                <div id="restart-btn-container"
+                    class="mt-8 flex flex-col items-center justify-center w-full transition-opacity duration-300">
+                    <button id="restart-btn"
+                        class="text-[var(--sub-color)] hover:text-[var(--text-color)] transition-colors py-3 px-5 rounded-lg outline-none focus:text-[var(--text-color)]">
+                        <i class="fa-solid fa-rotate-right text-xl"></i>
+                    </button>
+                    <span class="text-xs text-[var(--sub-color)] mt-1 font-mono">Press Tab to quick restart</span>
+                </div>
+
+                <div id="results-screen" class="hide w-full flex flex-col pt-2">
+                    <div
+                        class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8 bg-[var(--sub-alt-color)] p-6 rounded-2xl border border-theme shadow-lg">
+                        <div class="flex flex-col gap-6 justify-center">
+                            <div class="stat-group">
+                                <span class="stat-title">wpm</span>
+                                <span class="stat-val" id="result-wpm">00</span>
+                            </div>
+                            <div class="stat-group">
+                                <span class="stat-title">acc</span>
+                                <span class="stat-val" id="result-acc">100%</span>
+                            </div>
+                        </div>
+
+                        <div class="flex flex-col gap-3 justify-center text-[var(--text-color)] text-sm">
+                            <div class="flex justify-between w-full border-b border-theme pb-2">
+                                <span class="text-[var(--sub-color)]">test type</span>
+                                <span id="result-type" class="font-semibold">time 30</span>
+                            </div>
+                            <div class="flex justify-between w-full border-b border-theme pb-2">
+                                <span class="text-[var(--sub-color)]">characters</span>
+                                <span id="result-chars" class="font-mono">0/0/0/0</span>
+                            </div>
+                            <div class="flex justify-between w-full border-b border-theme pb-2">
+                                <span class="text-[var(--sub-color)]">time</span>
+                                <span id="result-time" class="font-semibold">30s</span>
+                            </div>
+                            <div class="flex justify-between w-full pt-1">
+                                <span class="text-[var(--main-color)] font-bold transition-colors"><i
+                                        class="fa-solid fa-fire mr-1"></i> streak</span>
+                                <span id="result-streak"
+                                    class="text-[var(--main-color)] font-bold transition-colors">0</span>
+                            </div>
+                            <div class="flex justify-between w-full">
+                                <span class="text-[var(--sub-color)] text-xs"><i class="fa-solid fa-trophy mr-1"></i>
+                                    best streak</span>
+                                <span id="result-best-streak"
+                                    class="text-[var(--text-color)] text-xs font-bold">0</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="flex justify-center">
+                        <button id="next-test-btn"
+                            class="nav-button bg-[var(--sub-alt-color)] text-[var(--text-color)] hover:bg-[var(--main-color)] hover:text-black font-bold text-lg px-8 py-3 rounded-xl transition-all flex items-center gap-2 border border-theme">
+                            <span>Next Test</span> <i class="fa-solid fa-arrow-right text-sm"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div id="view-leaderboard" class="hide w-full flex flex-col">
+                <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 gap-4">
+                    <div>
+                        <h2 class="text-2xl font-bold text-[var(--text-color)] flex items-center gap-2">
+                            <i class="fa-solid fa-trophy text-[var(--main-color)] transition-colors"></i> Squad
+                            Leaderboard
+                        </h2>
+                        <p class="text-[var(--sub-color)] text-xs mt-1" id="lb-category-title">Top Streaks for Time 30
+                        </p>
+                    </div>
+                    <div id="lb-status"
+                        class="text-xs text-[var(--sub-color)] font-mono bg-[var(--sub-alt-color)] px-3 py-1.5 rounded-lg border border-theme">
+                        Live Sync
+                    </div>
+                </div>
+
+                <div
+                    class="flex flex-wrap items-center justify-between gap-3 mb-6 bg-[var(--sub-alt-color)] p-2 rounded-xl border border-theme text-xs">
+                    <div class="flex items-center gap-1 bg-[var(--bg-color)] p-1 rounded-lg" id="lb-mode-tabs">
+                        <button
+                            class="lb-mode-btn active px-3 py-1 rounded-md transition-all font-semibold text-[var(--main-color)] bg-[var(--sub-alt-color)]"
+                            data-mode="time">time</button>
+                        <button
+                            class="lb-mode-btn px-3 py-1 rounded-md transition-all font-semibold text-[var(--sub-color)] hover:text-[var(--text-color)]"
+                            data-mode="words">words</button>
+                    </div>
+                    <div class="flex items-center gap-1.5 overflow-x-auto py-0.5" id="lb-length-tabs"></div>
+                </div>
+
+                <div class="bg-[var(--sub-alt-color)] rounded-2xl border border-theme overflow-hidden shadow-xl">
+                    <div
+                        class="grid grid-cols-12 gap-2 px-6 py-3 bg-[var(--bg-color)] opacity-90 text-[var(--sub-color)] text-xs font-bold uppercase tracking-wider border-b border-theme">
+                        <div class="col-span-1 text-center">#</div>
+                        <div class="col-span-5 md:col-span-6">User</div>
+                        <div class="col-span-3 md:col-span-3 text-right">Best Streak</div>
+                        <div class="col-span-3 md:col-span-2 text-right">Best WPM</div>
+                    </div>
+
+                    <div id="leaderboard-list"
+                        class="divide-y divide-[var(--border-color)] max-h-[450px] overflow-y-auto">
+                        <div class="p-8 text-center text-[var(--sub-color)] text-sm">
+                            <i class="fa-solid fa-circle-notch fa-spin mr-2"></i> Loading scores...
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <div id="auth-modal"
+        class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4 opacity-0 pointer-events-none transition-opacity duration-300">
+        <div class="bg-[var(--bg-color)] border border-theme w-full max-w-md rounded-2xl p-6 shadow-2xl relative transform scale-95 transition-transform duration-300"
+            id="auth-modal-card">
+
+            <button id="close-auth-modal"
+                class="absolute top-4 right-4 text-[var(--sub-color)] hover:text-[var(--text-color)] text-lg w-8 h-8 rounded-lg flex items-center justify-center transition-colors hidden">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+
+            <div class="text-center mb-6">
+                <div
+                    class="w-14 h-14 rounded-full bg-[var(--sub-alt-color)] text-[var(--main-color)] mx-auto flex items-center justify-center text-2xl mb-3 border border-theme transition-colors">
+                    <i class="fa-solid fa-user-ninja"></i>
+                </div>
+                <h2 class="text-xl font-bold text-[var(--text-color)]">Squad Auth</h2>
+                <p class="text-[var(--sub-color)] text-xs mt-1">An account is required to play and save scores.</p>
+            </div>
+
+            <div class="flex flex-col gap-4">
+                <div class="flex flex-col gap-3" id="auth-forms-container">
+
+                    <div id="auth-inputs-section" class="flex flex-col gap-3">
+                        <div class="flex bg-[var(--sub-alt-color)] p-1 rounded-lg border border-theme mb-2">
+                            <button id="tab-login"
+                                class="flex-1 py-1.5 text-sm font-bold rounded-md bg-[var(--bg-color)] text-[var(--main-color)] shadow-sm transition-all">Login</button>
+                            <button id="tab-signup"
+                                class="flex-1 py-1.5 text-sm font-bold rounded-md text-[var(--sub-color)] hover:text-[var(--text-color)] transition-all">Sign
+                                Up</button>
+                        </div>
+
+                        <div id="login-name-group">
+                            <label id="login-label"
+                                class="block text-[var(--sub-color)] text-[10px] uppercase font-bold tracking-wider mb-1.5">Login
+                                Name</label>
+                            <input type="text" id="username-input"
+                                class="w-full bg-[var(--sub-alt-color)] text-[var(--text-color)] px-4 py-2.5 rounded-lg outline-none focus:ring-2 focus:ring-[var(--main-color)] font-mono text-sm transition-all border border-theme placeholder:text-[var(--sub-color)]"
+                                placeholder="e.g. typemaster99" maxlength="15" autocomplete="off">
+                        </div>
+
+                        <div id="display-name-group" class="hide">
+                            <label
+                                class="block text-[var(--sub-color)] text-[10px] uppercase font-bold tracking-wider mb-1.5">Display
+                                Username</label>
+                            <input type="text" id="display-username-input"
+                                class="w-full bg-[var(--sub-alt-color)] text-[var(--text-color)] px-4 py-2.5 rounded-lg outline-none focus:ring-2 focus:ring-[var(--main-color)] font-mono text-sm transition-all border border-theme placeholder:text-[var(--sub-color)]"
+                                placeholder="e.g. TypeMaster" maxlength="15" autocomplete="off">
+                        </div>
+
+                        <div>
+                            <label
+                                class="block text-[var(--sub-color)] text-[10px] uppercase font-bold tracking-wider mb-1.5">Password</label>
+                            <input type="password" id="password-input"
+                                class="w-full bg-[var(--sub-alt-color)] text-[var(--text-color)] px-4 py-2.5 rounded-lg outline-none focus:ring-2 focus:ring-[var(--main-color)] text-sm transition-all border border-theme placeholder:text-[var(--sub-color)]"
+                                placeholder="••••••••">
+                        </div>
+
+                        <div id="signup-warning"
+                            class="hide mt-1 p-3 bg-amber-900/10 border border-amber-900/30 rounded-lg">
+                            <p class="text-amber-500 text-[10px] leading-relaxed font-mono">
+                                <i class="fa-solid fa-triangle-exclamation mr-1"></i>
+                                <strong>WARNING:</strong> Since we don't ask for a real email address, <strong>password
+                                    recovery is impossible!</strong> Write your password down. If you lose it, your
+                                account and stats are gone forever.
+                            </p>
+                        </div>
+
+                        <div class="mt-2" id="auth-action-buttons">
+                            <button id="login-btn"
+                                class="w-full bg-[var(--sub-alt-color)] hover:brightness-110 text-[var(--text-color)] font-bold py-2.5 rounded-lg transition-all text-sm border border-theme flex justify-center items-center shadow-sm">Login
+                                to Squad</button>
+                            <button id="signup-btn"
+                                class="w-full bg-[var(--main-color)] text-black font-bold py-2.5 rounded-lg hover:opacity-90 transition-all text-sm shadow-md flex justify-center items-center hide">Create
+                                Account</button>
+                        </div>
+
+                        <div class="text-center mt-2" id="forgot-password-container">
+                            <button id="forgot-password-btn"
+                                class="text-[var(--sub-color)] hover:text-[var(--text-color)] text-xs transition-colors underline decoration-[var(--border-color)] underline-offset-4">Forgot
+                                Password?</button>
+                            <div id="forgot-password-msg"
+                                class="hide mt-3 p-3 bg-red-900/10 border border-red-900/30 rounded-lg text-left">
+                                <p class="text-[var(--text-color)] text-[11px] leading-relaxed">
+                                    <i class="fa-solid fa-circle-info text-red-400 mr-1"></i> Because you sign up with
+                                    just a Username instead of a real email address, <strong>we cannot email you a
+                                        password reset link.</strong><br><br>
+                                    Please ask the Squad Admin to delete your old account so you can recreate it.
+                                </p>
+                            </div>
+                        </div>
+
+                    </div>
+
+                    <div id="logged-in-section" class="flex flex-col gap-2.5 hidden">
+                        <button id="logout-btn"
+                            class="w-full bg-[var(--sub-alt-color)] hover:brightness-110 text-[var(--text-color)] font-bold py-2.5 rounded-lg transition-all text-sm flex justify-center items-center gap-2 border border-theme">
+                            <i class="fa-solid fa-right-from-bracket"></i> Sign Out
+                        </button>
+                        <button id="toggle-delete-btn"
+                            class="w-full bg-red-900/20 hover:bg-red-900/40 text-red-500 hover:text-red-400 border border-red-900/40 font-medium py-2 rounded-lg transition-all text-xs flex justify-center items-center gap-2">
+                            <i class="fa-solid fa-trash-can"></i> Delete Account
+                        </button>
+
+                        <div id="delete-confirm-box"
+                            class="hide flex flex-col gap-2.5 p-3 mt-1 bg-red-900/10 border border-red-900/30 rounded-xl">
+                            <p class="text-xs text-red-500 font-medium leading-relaxed">
+                                <i class="fa-solid fa-triangle-exclamation mr-1"></i> Warning: This will permanently
+                                delete your account and all saved scores from the leaderboard.
+                            </p>
+                            <div>
+                                <label
+                                    class="block text-[var(--sub-color)] text-[10px] uppercase font-bold tracking-wider mb-1">Confirm
+                                    Password</label>
+                                <input type="password" id="delete-password-input"
+                                    class="w-full bg-[var(--sub-alt-color)] text-[var(--text-color)] px-3 py-2 rounded-lg outline-none focus:ring-1 focus:ring-red-500 text-xs border border-theme"
+                                    placeholder="Enter password to confirm">
+                            </div>
+                            <div class="flex gap-2 mt-1">
+                                <button id="cancel-delete-btn"
+                                    class="w-1/2 bg-[var(--sub-alt-color)] text-[var(--sub-color)] hover:text-[var(--text-color)] py-1.5 rounded-lg text-xs font-semibold border border-theme">Cancel</button>
+                                <button id="confirm-delete-btn"
+                                    class="w-1/2 bg-red-600 hover:bg-red-500 text-white font-bold py-1.5 rounded-lg text-xs transition-all flex justify-center items-center shadow-md">Confirm
+                                    Delete</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div id="auth-error"
+                    class="text-[var(--error-color)] text-xs text-center hide font-medium mt-1 bg-red-900/20 py-2 rounded-lg border border-red-900/30">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="settings-modal"
+        class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4 opacity-0 pointer-events-none transition-opacity duration-300">
+        <div class="bg-[var(--bg-color)] border border-theme w-full max-w-md rounded-2xl p-6 shadow-2xl relative transform scale-95 transition-transform duration-300 max-h-[90vh] overflow-y-auto"
+            id="settings-modal-card">
+            <button id="close-settings-modal"
+                class="absolute top-4 right-4 text-[var(--sub-color)] hover:text-[var(--text-color)] text-lg w-8 h-8 rounded-lg flex items-center justify-center transition-colors">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+
+            <h2 class="text-xl font-bold text-[var(--text-color)] mb-6 flex items-center gap-2">
+                <i class="fa-solid fa-gear text-[var(--main-color)] transition-colors"></i> Settings
+            </h2>
+
+            <div class="flex flex-col gap-6">
+                <div>
+                    <h3 class="text-xs text-[var(--sub-color)] uppercase font-bold tracking-wider mb-3">Appearance</h3>
+                    <div class="flex flex-col gap-3">
+                        <div class="flex gap-2">
+                            <button
+                                class="theme-btn active bg-[var(--sub-alt-color)] text-[var(--text-color)] px-4 py-2 rounded-lg text-sm font-semibold flex-1 border border-theme"
+                                data-theme="dark">Dark Mode</button>
+                            <button
+                                class="theme-btn bg-[var(--sub-alt-color)] text-[var(--text-color)] px-4 py-2 rounded-lg text-sm font-semibold flex-1 border border-theme"
+                                data-theme="light">Light Mode</button>
+                        </div>
+                        <div
+                            class="flex gap-3 justify-center bg-[var(--sub-alt-color)] p-3 rounded-lg border border-theme">
+                            <button class="color-btn bg-[#13C9C9] active" data-color="#13C9C9"></button>
+                            <button class="color-btn bg-[#ca4754]" data-color="#ca4754"></button>
+                            <button class="color-btn bg-[#4ade80]" data-color="#4ade80"></button>
+                            <button class="color-btn bg-[#a855f7]" data-color="#a855f7"></button>
+                            <button class="color-btn bg-[#eab308]" data-color="#eab308"></button>
+                        </div>
+                    </div>
+                </div>
+
+                <div>
+                    <h3 class="text-xs text-[var(--sub-color)] uppercase font-bold tracking-wider mb-3">Font Size (Zoom)
+                    </h3>
+                    <div class="flex gap-2 bg-[var(--sub-alt-color)] p-2 rounded-lg border border-theme">
+                        <button
+                            class="font-btn flex-1 py-1.5 rounded-md text-sm text-[var(--sub-color)] bg-[var(--bg-color)] hover:text-[var(--text-color)]"
+                            data-size="2">2 (Small)</button>
+                        <button
+                            class="font-btn flex-1 py-1.5 rounded-md text-sm text-[var(--sub-color)] bg-[var(--bg-color)] hover:text-[var(--text-color)] active"
+                            data-size="3">3 (Normal)</button>
+                        <button
+                            class="font-btn flex-1 py-1.5 rounded-md text-sm text-[var(--sub-color)] bg-[var(--bg-color)] hover:text-[var(--text-color)]"
+                            data-size="4">4 (Large)</button>
+                    </div>
+                </div>
+
+                <div id="settings-account-section" class="hide flex flex-col gap-6 border-t border-theme pt-4">
+                    <!-- Update Change Username section to include password confirmation -->
+                    <div>
+                        <h3 class="text-xs text-[var(--sub-color)] uppercase font-bold tracking-wider mb-2">Change
+                            Username</h3>
+                        <div class="flex flex-col gap-2">
+                            <input type="password" id="settings-username-password"
+                                class="w-full bg-[var(--sub-alt-color)] text-[var(--text-color)] px-3 py-2 rounded-lg outline-none focus:ring-1 focus:ring-[var(--main-color)] text-sm border border-theme placeholder:text-[var(--sub-color)]"
+                                placeholder="Confirm Current Password">
+                            <input type="text" id="settings-new-username"
+                                class="w-full bg-[var(--sub-alt-color)] text-[var(--text-color)] px-3 py-2 rounded-lg outline-none focus:ring-1 focus:ring-[var(--main-color)] text-sm border border-theme placeholder:text-[var(--sub-color)] font-mono"
+                                placeholder="New Username" maxlength="15">
+                            <button id="btn-save-username"
+                                class="w-full bg-[var(--sub-alt-color)] hover:brightness-110 text-[var(--text-color)] font-bold px-4 py-2 rounded-lg transition-all text-sm border border-theme">Update
+                                Username</button>
+                        </div>
+                    </div>
+
+                    <div>
+                        <h3 class="text-xs text-[var(--sub-color)] uppercase font-bold tracking-wider mb-2">Change
+                            Password</h3>
+                        <div class="flex flex-col gap-2">
+                            <input type="password" id="settings-current-password"
+                                class="w-full bg-[var(--sub-alt-color)] text-[var(--text-color)] px-3 py-2 rounded-lg outline-none focus:ring-1 focus:ring-[var(--main-color)] text-sm border border-theme placeholder:text-[var(--sub-color)]"
+                                placeholder="Current Password">
+                            <input type="password" id="settings-new-password"
+                                class="w-full bg-[var(--sub-alt-color)] text-[var(--text-color)] px-3 py-2 rounded-lg outline-none focus:ring-1 focus:ring-[var(--main-color)] text-sm border border-theme placeholder:text-[var(--sub-color)]"
+                                placeholder="New Password (min 6 chars)">
+                            <input type="password" id="settings-confirm-password"
+                                class="w-full bg-[var(--sub-alt-color)] text-[var(--text-color)] px-3 py-2 rounded-lg outline-none focus:ring-1 focus:ring-[var(--main-color)] text-sm border border-theme placeholder:text-[var(--sub-color)]"
+                                placeholder="Confirm New Password">
+                            <button id="btn-save-password"
+                                class="w-full bg-[var(--sub-alt-color)] hover:brightness-110 text-[var(--text-color)] font-bold px-4 py-2 rounded-lg transition-all text-sm border border-theme mt-1">Change
+                                Password</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="settings-message" class="text-xs text-center font-medium py-2 rounded-lg hide border"></div>
+            </div>
+        </div>
+    </div>
+    <!-- Add Song Modal -->
+    <div id="add-song-modal"
+        class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4 opacity-0 pointer-events-none transition-opacity duration-300">
+        <div class="bg-[var(--bg-color)] border border-theme w-full max-w-lg rounded-2xl p-6 shadow-2xl relative transform scale-95 transition-transform duration-300"
+            id="add-song-modal-card">
+            <button id="close-song-modal"
+                class="absolute top-4 right-4 text-[var(--sub-color)] hover:text-[var(--text-color)] text-lg w-8 h-8 rounded-lg flex items-center justify-center transition-colors">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+
+            <h2 id="modal-title-text" class="text-xl font-bold text-[var(--text-color)] mb-4 flex items-center gap-2">
+                <i class="fa-solid fa-music text-[var(--main-color)]"></i> Add Custom Song
+            </h2>
+
+            <div class="flex flex-col gap-4">
+                <div>
+                    <label
+                        class="block text-[var(--sub-color)] text-[10px] uppercase font-bold tracking-wider mb-1.5">Song
+                        Title</label>
+                    <input type="text" id="new-song-title"
+                        class="w-full bg-[var(--sub-alt-color)] text-[var(--text-color)] px-4 py-2 rounded-lg outline-none focus:ring-2 focus:ring-[var(--main-color)] font-mono text-sm border border-theme"
+                        placeholder="e.g. Bohemian Rhapsody">
+                </div>
+                <div>
+                    <label
+                        class="block text-[var(--sub-color)] text-[10px] uppercase font-bold tracking-wider mb-1.5">Lyrics</label>
+                    <textarea id="new-song-lyrics"
+                        class="w-full bg-[var(--sub-alt-color)] text-[var(--text-color)] px-4 py-2 rounded-lg outline-none focus:ring-2 focus:ring-[var(--main-color)] font-mono text-sm border border-theme h-32 resize-none"
+                        placeholder="Paste lyrics here..."></textarea>
+                    <label for="fontSelect"
+                        class="block text-xs font-mono uppercase tracking-wider text-[var(--sub-color)] mb-2">
+                        FONT
+                    </label>
+                    <!-- Notice the border-transparent, focus:ring-0, and the new onchange event -->
+                    <select id="fontSelect" onchange="this.style.fontFamily = this.value"
+                        class="w-full p-3 rounded-lg bg-[var(--bg-color)] text-[var(--text-color)] text-sm border-2 border-transparent focus:border-transparent focus:ring-0 outline-none cursor-pointer">
+                        <option value="'Roboto', sans-serif" style="font-family: 'Roboto', sans-serif">Roboto
+                            (Sans-Serif)</option>
+                        <option value="'Open Sans', sans-serif" style="font-family: 'Open Sans', sans-serif">Open Sans
+                            (Sans-Serif)</option>
+                        <option value="'Lato', sans-serif" style="font-family: 'Lato', sans-serif">Lato (Sans-Serif)
+                        </option>
+                        <option value="'Montserrat', sans-serif" style="font-family: 'Montserrat', sans-serif">
+                            Montserrat (Sans-Serif)</option>
+                        <option value="'Comfortaa', cursive" style="font-family: 'Comfortaa', cursive">Comfortaa
+                            (Rounded)</option>
+                        <option value="'Oswald', sans-serif" style="font-family: 'Oswald', sans-serif">Oswald
+                            (Condensed)</option>
+                        <option value="'Playfair Display', serif" style="font-family: 'Playfair Display', serif">
+                            Playfair Display (Serif)</option>
+                        <option value="'Merriweather', serif" style="font-family: 'Merriweather', serif">Merriweather
+                            (Serif)</option>
+                        <option value="'Lora', serif" style="font-family: 'Lora', serif">Lora (Serif)</option>
+                        <option value="'Cormorant Garamond', serif" style="font-family: 'Cormorant Garamond', serif">
+                            Cormorant Garamond (Serif)</option>
+                        <option value="'Cinzel', serif" style="font-family: 'Cinzel', serif">Cinzel (Classic Serif)
+                        </option>
+                        <option value="'Abril Fatface', display" style="font-family: 'Abril Fatface', display">Abril
+                            Fatface (Bold Display)</option>
+                        <option value="'Great Vibes', cursive" style="font-family: 'Great Vibes', cursive">Great Vibes
+                            (Calligraphy)</option>
+                        <option value="'Parisienne', cursive" style="font-family: 'Parisienne', cursive">Parisienne
+                            (Calligraphy)</option>
+                        <option value="'Dancing Script', cursive" style="font-family: 'Dancing Script', cursive">Dancing
+                            Script (Handwriting)</option>
+                        <option value="'Alex Brush', cursive" style="font-family: 'Alex Brush', cursive">Alex Brush
+                            (Calligraphy)</option>
+                        <option value="'Caveat', cursive" style="font-family: 'Caveat', cursive">Caveat (Handwriting)
+                        </option>
+                        <option value="'Satisfy', cursive" style="font-family: 'Satisfy', cursive">Satisfy (Script)
+                        </option>
+                        <option value="'Pacifico', cursive" style="font-family: 'Pacifico', cursive">Pacifico (Fun
+                            Script)</option>
+                        <option value="'Lobster', cursive" style="font-family: 'Lobster', cursive">Lobster (Bold Script)
+                        </option>
+                        <option value="'Shadows Into Light', cursive"
+                            style="font-family: 'Shadows Into Light', cursive">Shadows Into Light (Handwriting)</option>
+                        <option value="'Permanent Marker', cursive" style="font-family: 'Permanent Marker', cursive">
+                            Permanent Marker (Marker)</option>
+                        <option value="'Fira Code', monospace" style="font-family: 'Fira Code', monospace">Fira Code
+                            (Monospace)</option>
+                        <option value="'JetBrains Mono', monospace" style="font-family: 'JetBrains Mono', monospace">
+                            JetBrains Mono (Monospace)</option>
+                        <option value="'Space Mono', monospace" style="font-family: 'Space Mono', monospace">Space Mono
+                            (Monospace)</option>
+                        <option value="'Special Elite', monospace" style="font-family: 'Special Elite', monospace">
+                            Special Elite (Distressed Typewriter)</option>
+                        <option value="'Nothing You Could Do', cursive"
+                            style="font-family: 'Nothing You Could Do', cursive">Nothing You Could Do (Scratchy
+                            Handwriting)</option>
+                        <option value="'Rock Salt', cursive" style="font-family: 'Rock Salt', cursive">Rock Salt (Gritty
+                            Marker)</option>
+                        <option value="'Cormorant Garamond', serif" style="font-family: 'Cormorant Garamond', serif">
+                            Cormorant Garamond (Serif)</option>
+                        <option value="'Oswald', sans-serif" style="font-family: 'Oswald', sans-serif">Oswald
+                            (Condensed)</option>
+                        <!-- Modern & Clean Sans-Serifs -->
+                        <option value="'Poppins', sans-serif" style="font-family: 'Poppins', sans-serif">Poppins (Modern
+                            Sans)</option>
+                        <option value="'Inter', sans-serif" style="font-family: 'Inter', sans-serif">Inter (Clean UI
+                            Sans)</option>
+                        <option value="'Nunito', sans-serif" style="font-family: 'Nunito', sans-serif">Nunito (Rounded
+                            Sans)</option>
+                        <option value="'Raleway', sans-serif" style="font-family: 'Raleway', sans-serif">Raleway
+                            (Elegant Sans)</option>
+
+                        <!-- Bold & Impactful Display -->
+                        <option value="'Bebas Neue', sans-serif" style="font-family: 'Bebas Neue', sans-serif">Bebas
+                            Neue (Tall Headline)</option>
+                        <option value="'Anton', sans-serif" style="font-family: 'Anton', sans-serif">Anton (Heavy
+                            Impact)</option>
+                        <option value="'Righteous', display" style="font-family: 'Righteous', display">Righteous (Retro
+                            Pop)</option>
+                        <option value="'Fredoka', sans-serif" style="font-family: 'Fredoka', sans-serif">Fredoka
+                            (Friendly & Chunky)</option>
+
+                        <!-- Handwriting & Quirky -->
+                        <option value="'Indie Flower', cursive" style="font-family: 'Indie Flower', cursive">Indie
+                            Flower (Casual Marker)</option>
+                        <option value="'Amatic SC', cursive" style="font-family: 'Amatic SC', cursive">Amatic SC (Quirky
+                            Hand)</option>
+
+                        <!-- Classic Serif & Monospace -->
+                        <option value="'PT Serif', serif" style="font-family: 'PT Serif', serif">PT Serif (Classic Book)
+                        </option>
+                        <option value="'Inconsolata', monospace" style="font-family: 'Inconsolata', monospace">
+                            Inconsolata (Clean Monospace)</option>
+                    </select>
+                    <button id="save-song-btn"
+                        class="w-full bg-[var(--main-color)] text-black font-bold py-2.5 rounded-lg hover:opacity-90 transition-all text-sm shadow-md mt-2">Save
+                        Song</button>
+                </div>
+            </div>
+        </div>
+
+        <script type="module" src="Js/app.js"></script>
+
+</body>
+
+</html>
