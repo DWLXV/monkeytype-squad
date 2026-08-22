@@ -22,14 +22,14 @@ async function loadSongsFromFirebase() {
         querySnapshot.forEach((document) => {
             customSongs.push({ id: document.id, ...document.data() });
         });
-        
+
         // Sort customSongs by their order property
         customSongs.sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
 
         if (customSongs.length === 0) {
             customSongs = [{ title: "Default Song", lyrics: "this is a default song to test the lyrics feature typing speed", font: "'Great Vibes', cursive", order: 0 }];
         }
-        
+
         populateSongDropdown();
     } catch (error) {
         console.error("Error loading songs from Firebase:", error);
@@ -80,7 +80,7 @@ function populateSongDropdown() {
 
         // Added 'song-item' class and draggable property
         item.className = `song-item group flex justify-between items-center px-4 py-2 text-xs font-mono cursor-pointer transition-colors ${isActive ? 'bg-[var(--bg-color)] text-[var(--main-color)] font-bold' : 'text-[var(--sub-color)] hover:bg-[var(--bg-color)] hover:text-[var(--text-color)]'}`;
-        item.draggable = true; 
+        item.draggable = true;
 
         // Create a wrapper for the grip icon and the title so they sit together on the left
         const leftSideDiv = document.createElement('div');
@@ -93,7 +93,7 @@ function populateSongDropdown() {
 
         const titleSpan = document.createElement('span');
         titleSpan.innerText = song.title;
-        
+
         leftSideDiv.appendChild(gripIcon);
         leftSideDiv.appendChild(titleSpan);
         item.appendChild(leftSideDiv);
@@ -133,7 +133,7 @@ function populateSongDropdown() {
             e.stopPropagation();
 
             if (confirm(`Are you sure you want to delete "${song.title}"?`)) {
-                
+
                 // Delete from Firebase using the document ID
                 if (song.id) {
                     deleteDoc(doc(db, "songs", song.id)).catch(err => console.error(err));
@@ -218,12 +218,12 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         list.addEventListener('dragover', (e) => {
-            e.preventDefault(); 
+            e.preventDefault();
             const draggable = document.querySelector('.dragging');
             if (!draggable) return;
 
             const afterElement = getDragAfterElement(list, e.clientY);
-            
+
             if (afterElement == null) {
                 list.appendChild(draggable);
             } else {
@@ -777,7 +777,7 @@ if (typingTestDiv) {
                 if (nextElement && nextElement.style.flexBasis === '100%') {
                     currentWordIndex++;
                 }
-                if (currentWordIndex >= words.length) {
+                if (currentWordIndex >= wordsContainer.children.length) {
                     endTest();
                     return;
                 }
@@ -826,16 +826,28 @@ if (typingTestDiv) {
             }
 
             currentWordIndex += 1;
-            if (currentWordIndex >= words.length) {
+            
+            // Determine the true limit based on the current mode
+            const limit = state.mode === 'song' ? wordsContainer.children.length : words.length;
+            
+            if (currentWordIndex >= limit) {
                 endTest();
                 return;
             }
             updateCaretPosition();
 
             if (state.mode === 'words' || state.mode === 'song') {
-                const total = state.mode === 'song' ? words.length : state.length;
-                liveStats.innerText = `${currentWordIndex}/${total}`;
-                if (currentWordIndex >= total) endTest();
+                // Set the structural limit for the loop, and the visual total for the UI
+                const domLimit = state.mode === 'song' ? wordsContainer.children.length : state.length;
+                const displayTotal = state.mode === 'song' ? words.length : state.length;
+
+                // Cap the visual index so the counter doesn't overflow
+                const visualIndex = state.mode === 'song' ? Math.min(currentWordIndex, displayTotal) : currentWordIndex;
+
+                liveStats.innerText = `${visualIndex}/${displayTotal}`;
+
+                // Check against the true DOM limit for completion
+                if (currentWordIndex >= domLimit) endTest();
             }
             return;
         }
@@ -1011,7 +1023,7 @@ document.addEventListener('DOMContentLoaded', () => {
             } else {
                 // Add new song to Firebase
                 await addDoc(collection(db, "songs"), { title, lyrics, font, order: customSongs.length, timestamp: Date.now() });
-                window.selectedSongIndex = customSongs.length; 
+                window.selectedSongIndex = customSongs.length;
             }
 
             // Reload everything from DB to sync up the new IDs and UI
@@ -1022,7 +1034,7 @@ document.addEventListener('DOMContentLoaded', () => {
             document.getElementById('close-song-modal').click();
 
             if (state.mode === 'song') resetTest();
-            
+
         } catch (error) {
             console.error("Error syncing song:", error);
             alert("Failed to sync to database.");
