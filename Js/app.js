@@ -11,7 +11,8 @@ window.__appState = window.__appState || {
     mode: 'time',
     length: 30,
     lbMode: 'time',
-    lbLength: 30
+    lbLength: 30,
+    masterMode: false
 };
 
 const state = window.__appState;
@@ -129,10 +130,52 @@ navTestBtn.addEventListener('click', () => switchView('test'));
 navLeaderboardBtn.addEventListener('click', () => switchView('leaderboard'));
 logoBtn.addEventListener('click', () => switchView('test'));
 
+function setupMasterModeToggle() {
+    const toggleBtn = document.getElementById('master-mode-toggle');
+    const thumb = document.getElementById('master-mode-thumb');
+    if (!toggleBtn || !thumb) return;
+
+    const savedMaster = localStorage.getItem('monkeytype_master_mode') === 'true';
+    state.masterMode = savedMaster;
+
+    updateMasterModeUI();
+
+    toggleBtn.addEventListener('click', () => {
+        state.masterMode = !state.masterMode;
+        localStorage.setItem('monkeytype_master_mode', state.masterMode);
+        updateMasterModeUI();
+        if (typeof window.loadStreaks === 'function') window.loadStreaks();
+        if (typeof window.resetTest === 'function') window.resetTest();
+        if (state.currentView === 'leaderboard' && typeof window.fetchLeaderboard === 'function') window.fetchLeaderboard();
+    });
+}
+
+function updateMasterModeUI() {
+    const toggleBtn = document.getElementById('master-mode-toggle');
+    const thumb = document.getElementById('master-mode-thumb');
+    if (!toggleBtn || !thumb) return;
+
+    if (state.masterMode) {
+        toggleBtn.classList.add('bg-[var(--main-color)]');
+        toggleBtn.classList.remove('bg-[var(--bg-color)]');
+        thumb.classList.add('translate-x-6', 'bg-black');
+        thumb.classList.remove('translate-x-0', 'bg-[var(--sub-color)]');
+    } else {
+        toggleBtn.classList.remove('bg-[var(--main-color)]');
+        toggleBtn.classList.add('bg-[var(--bg-color)]');
+        thumb.classList.remove('translate-x-6', 'bg-black');
+        thumb.classList.add('translate-x-0', 'bg-[var(--sub-color)]');
+    }
+}
+
+window.setupMasterModeToggle = setupMasterModeToggle;
+window.updateMasterModeUI = updateMasterModeUI;
+
 window.addEventListener('DOMContentLoaded', () => {
     loadPreferences();
+    setupMasterModeToggle();
     if (typeof window.setupConfigListeners === 'function') window.setupConfigListeners();
     if (typeof window.renderLbLengths === 'function') window.renderLbLengths();
     if (typeof window.resetTest === 'function') window.resetTest();
     switchView('test');
-});
+}); 
