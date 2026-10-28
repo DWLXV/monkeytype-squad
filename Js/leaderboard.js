@@ -24,8 +24,13 @@ const lbModeBtns = document.querySelectorAll('.lb-mode-btn');
 async function fetchLeaderboard() {
     const lbMode = state.lbMode || 'time';
     const lbLength = state.lbLength || 30;
+    const modeSuffix = state.masterMode ? 'master' : 'score';
 
-    if (lbCategoryTitle) lbCategoryTitle.innerText = `Top Streaks for ${lbMode} ${lbLength}`;
+    if (lbCategoryTitle) lbCategoryTitle.innerText = state.masterMode ? `Top Streaks for ${lbMode} ${lbLength} (Master)` : `Top Scores for ${lbMode} ${lbLength}`;
+    
+    const lbHeaderScore = document.getElementById('lb-header-score');
+    if (lbHeaderScore) lbHeaderScore.innerText = state.masterMode ? 'Best Streak' : 'Best Score';
+
     if (isOffline || !db) {
         if (lbStatus) {
             lbStatus.innerText = 'Offline';
@@ -41,9 +46,8 @@ async function fetchLeaderboard() {
     }
 
     try {
-        const lbRef = collection(db, 'artifacts', appId, 'public', 'data', `leaderboard_${lbMode}_${lbLength}`);
+        const lbRef = collection(db, 'artifacts', appId, 'public', 'data', `leaderboard_${lbMode}_${lbLength}_${modeSuffix}`);
         const querySnap = await getDocs(lbRef);
-
         let results = [];
         querySnap.forEach((docSnap) => {
             const data = docSnap.data();
