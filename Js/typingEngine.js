@@ -280,14 +280,14 @@ const testContainer = document.getElementById('typing-test-container');
 const resultsScreen = document.getElementById('results-screen');
 
 async function syncCurrentStreak() {
-    const key = `${state.mode}_${state.length}`;
+    const key = `${state.mode}_${state.length}_${state.masterMode ? 'master' : 'score'}`;
 
     if (!state.userStats[key]) {
         state.userStats[key] = {};
     }
 
     state.userStats[key].currentStreak = currentStreak;
-    localStorage.setItem(`streak_current_${key}`, currentStreak);
+    localStorage.setItem(`stat_current_${key}`, currentStreak);
 
     if (state.currentUser && !isOffline && db) {
         try {
@@ -301,13 +301,13 @@ async function syncCurrentStreak() {
             };
             await setDoc(profileRef, targetedPayload, { merge: true });
         } catch (e) {
-            console.warn('Could not sync current streak:', e);
+            console.warn('Could not sync current stats:', e);
         }
     }
 }
 
 function loadStreaks() {
-    const key = `${state.mode}_${state.length}`;
+    const key = `${state.mode}_${state.length}_${state.masterMode ? 'master' : 'score'}`;
 
     if (!state.userStats[key]) {
         state.userStats[key] = {};
@@ -318,8 +318,8 @@ function loadStreaks() {
     if (state.currentUser && state.userStats[key].currentStreak !== undefined) {
         currentStreak = state.userStats[key].currentStreak;
     } else {
-        const localStreak = localStorage.getItem(`streak_current_${key}`);
-        currentStreak = localStreak ? parseInt(localStreak) : 0;
+        const localVal = localStorage.getItem(`stat_current_${key}`);
+        currentStreak = localVal ? parseInt(localVal) : 0;
     }
 
     updateStreakUI();
@@ -329,6 +329,23 @@ function updateStreakUI(flashing = false, failed = false) {
     if (currentStreak > bestStreak) bestStreak = currentStreak;
     streakValue.innerText = currentStreak;
     bestStreakValue.innerText = bestStreak;
+
+    const streakIcon = document.getElementById('streak-icon');
+    const streakLabel = document.getElementById('streak-label');
+    const bestStreakLabel = document.getElementById('best-streak-label');
+    const streakTooltip = document.getElementById('streak-tooltip');
+
+    if (state.masterMode) {
+        if (streakIcon) streakIcon.className = 'fa-solid fa-fire text-lg';
+        if (streakLabel) streakLabel.innerText = 'Streak:';
+        if (bestStreakLabel) bestStreakLabel.innerText = 'Best:';
+        if (streakTooltip) streakTooltip.innerText = '100% Accuracy Required. Resets on first typo.';
+    } else {
+        if (streakIcon) streakIcon.className = 'fa-solid fa-star text-lg';
+        if (streakLabel) streakLabel.innerText = 'Score:';
+        if (bestStreakLabel) bestStreakLabel.innerText = 'Best:';
+        if (streakTooltip) streakTooltip.innerText = '100% Accuracy adds +1. Failure subtracts -1 (min 0).';
+    }
 
     if (currentStreak > 0) streakDisplay.classList.add('streak-active');
     else streakDisplay.classList.remove('streak-active');
@@ -489,7 +506,13 @@ function updateCaretPosition() {
 function breakStreak() {
     if (isPerfectTest) {
         isPerfectTest = false;
-        currentStreak = 0;
+        if (state.masterMode) {
+            // Master Mode: Hard reset to 0 on first typo
+            currentStreak = 0;
+        } else {
+            // Default Mode: Decrease score by 1 at the first typo
+            currentStreak = Math.max(0, currentStreak - 1);
+        }
         updateStreakUI(false, true);
         syncCurrentStreak();
     }
@@ -566,7 +589,8 @@ function resetTest() {
 }
 
 async function updateAccountStats(statMode, statLength, localBestStreak, wpm) {
-    const key = `${statMode}_${statLength}`;
+    const modeSuffix = state.masterMode ? 'master' : 'score';
+    const key = `${statMode}_${statLength}_${modeSuffix}`;
     if (!state.currentUser) return;
 
     if (!isOffline && db) {
@@ -589,7 +613,7 @@ async function updateAccountStats(statMode, statLength, localBestStreak, wpm) {
 
             await setDoc(profileRef, { stats: state.userStats }, { merge: true });
 
-            const userScoreRef = doc(db, 'artifacts', appId, 'public', 'data', `leaderboard_${statMode}_${statLength}`, state.currentUser.uid);
+            const userScoreRef = doc(db, 'artifacts', appId, 'public', 'data', `leaderboard_${statMode}_${statLength}_${modeSuffix}`, state.currentUser.uid);
             await setDoc(userScoreRef, { username: state.userProfileData.username, streak: trueBestStreak, wpm: trueBestWpm, updatedAt: Date.now(), uid: state.currentUser.uid }, { merge: true });
 
             if (typeof window.syncUserRegistry === 'function') await window.syncUserRegistry();
@@ -624,13 +648,25 @@ async function endTest() {
 
     const meetsSpeed = state.mode === 'time' ? correctChars >= ((state.length / 3) * 5) : timeElapsed <= (state.length * 3);
 
-    if (isPerfectTest) {
+    if (state.masterMode) {
+        // Master Mode: Strict Streak (+1 on 100% accuracy, resets to 0 on failure)
+        if (isPerfectTest) {
+            if (totalAttempted > 0 && accuracy === 100 && meetsSpeed) {
+                currentStreak += 1;
+                updateStreakUI(true, false);
+            } else {
+                isPerfectTest = false;
+                currentStreak = 0;
+                updateStreakUI(false, true);
+            }
+        }
+    } else {
+        // Default Mode: Score (+1 on 100% accuracy, -1 on failure/typos, min 0)
         if (totalAttempted > 0 && accuracy === 100 && meetsSpeed) {
             currentStreak += 1;
             updateStreakUI(true, false);
         } else {
-            isPerfectTest = false;
-            currentStreak = 0;
+            currentStreak = Math.max(0, currentStreak - 1);
             updateStreakUI(false, true);
         }
     }
@@ -639,14 +675,15 @@ async function endTest() {
 
     document.getElementById('result-wpm').innerText = wpm;
     document.getElementById('result-acc').innerText = `${Math.round(accuracy)}%`;
-    document.getElementById('result-type').innerText = `${state.mode} ${state.length}`;
+    document.getElementById('result-type').innerText = `${state.mode} ${state.length} ${state.masterMode ? '(Master)' : ''}`;
     document.getElementById('result-chars').innerText = `${correctChars}/${incorrectChars}/${extraChars}/${missedChars}`;
     document.getElementById('result-time').innerText = `${timeElapsed}s`;
 
-    if (isPerfectTest && totalAttempted > 0) {
-        document.getElementById('result-streak').innerHTML = `<span style="color: var(--main-color)">+1 Perfect</span> (${currentStreak})`;
+    const labelName = state.masterMode ? 'Streak' : 'Score';
+    if (totalAttempted > 0 && accuracy === 100 && meetsSpeed) {
+        document.getElementById('result-streak').innerHTML = `<span style="color: var(--main-color)">+1 ${labelName}</span> (${currentStreak})`;
     } else {
-        document.getElementById('result-streak').innerHTML = `Broken <span class="text-sm" style="color: var(--sub-color)">(0)</span>`;
+        document.getElementById('result-streak').innerHTML = `<span style="color: var(--error-color)">-1 ${labelName}</span> (${currentStreak})`;
     }
     document.getElementById('result-best-streak').innerText = bestStreak;
 
