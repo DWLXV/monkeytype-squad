@@ -48,19 +48,19 @@
 
             <div class="flex items-center gap-4 text-sm text-[var(--sub-color)]">
                 <div id="streak-display" class="streak-counter group relative cursor-help">
-                    <i class="fa-solid fa-fire text-lg"></i>
-                    <span class="tracking-wider text-xs uppercase hidden sm:inline">Streak:</span>
+                    <i id="streak-icon" class="fa-solid fa-star text-lg"></i>
+                    <span id="streak-label" class="tracking-wider text-xs uppercase hidden sm:inline">Score:</span>
                     <span id="streak-value" class="text-lg font-bold">0</span>
 
                     <div class="border-l border-[var(--sub-color)] pl-2 flex items-baseline">
-                        <span
+                        <span id="best-streak-label"
                             class="tracking-wider text-[10px] uppercase text-[var(--sub-color)] hidden sm:inline">Best:</span>
                         <span id="best-streak-value" class="text-xs font-bold text-[var(--text-color)]">0</span>
                     </div>
 
-                    <div
+                    <div id="streak-tooltip"
                         class="absolute top-10 right-0 w-max bg-[var(--sub-alt-color)] text-[var(--text-color)] text-xs py-1 px-3 rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 shadow-lg border border-theme">
-                        100% Accuracy Required. Resets on first typo.
+                        100% Accuracy adds +1. Failure subtracts -1 (min 0).
                     </div>
                 </div>
 
@@ -238,7 +238,7 @@
                         class="grid grid-cols-12 gap-2 px-6 py-3 bg-[var(--bg-color)] opacity-90 text-[var(--sub-color)] text-xs font-bold uppercase tracking-wider border-b border-theme">
                         <div class="col-span-1 text-center">#</div>
                         <div class="col-span-5 md:col-span-6">User</div>
-                        <div class="col-span-3 md:col-span-3 text-right">Best Streak</div>
+                        <div id="lb-header-score" class="col-span-3 md:col-span-3 text-right">Best Score</div>
                         <div class="col-span-3 md:col-span-2 text-right">Best WPM</div>
                     </div>
 
@@ -436,6 +436,25 @@
                         <button
                             class="font-btn flex-1 py-1.5 rounded-md text-sm text-[var(--sub-color)] bg-[var(--bg-color)] hover:text-[var(--text-color)]"
                             data-size="4">4 (Large)</button>
+                    </div>
+                </div>
+
+                <div>
+                    <h3 class="text-xs text-[var(--sub-color)] uppercase font-bold tracking-wider mb-3">Gameplay Mode
+                    </h3>
+                    <div
+                        class="flex items-center justify-between bg-[var(--sub-alt-color)] p-3 rounded-lg border border-theme">
+                        <div>
+                            <div class="text-sm font-semibold text-[var(--text-color)]">Master / Hard Mode</div>
+                            <div class="text-[11px] text-[var(--sub-color)]">Strict streak counter (resets on typo).
+                            </div>
+                        </div>
+                        <button id="master-mode-toggle"
+                            class="w-12 h-6 rounded-full bg-[var(--bg-color)] border border-theme relative transition-colors p-0.5 outline-none">
+                            <div id="master-mode-thumb"
+                                class="w-5 h-5 rounded-full bg-[var(--sub-color)] transition-transform transform translate-x-0">
+                            </div>
+                        </button>
                     </div>
                 </div>
 
